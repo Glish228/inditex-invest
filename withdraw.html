@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Retrait</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a href="dashboard.html" style="color:var(--gray); font-size:22px;">
+      <i class="ri-arrow-left-line"></i>
+    </a>
+    <div class="topbar-logo" style="font-size:18px;">INDI<span>TEX</span></div>
+    <div style="width:22px;"></div>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <div class="section-title">Demande de Retrait</div>
+
+      <!-- Solde retrait -->
+      <div class="wallet-card" style="margin-bottom:20px; width:100%;">
+        <div class="wallet-label">💳 Portefeuille Retrait disponible</div>
+        <div class="wallet-amount" id="withdrawalBalance">0 F</div>
+        <div class="wallet-sub">Minimum : 1 000 F · Frais : 10%</div>
+      </div>
+
+      <!-- Infos horaires -->
+      <div class="alert alert-info show" style="margin-bottom:20px;">
+        <i class="ri-time-line"></i>
+        Les retraits sont traités de <strong>7h00 à 18h00</strong> du lundi au dimanche.
+      </div>
+
+      <!-- Alerts -->
+      <div class="alert alert-danger" id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
+
+      <!-- Formulaire -->
+      <div class="card">
+
+        <!-- Montant -->
+        <div class="form-group">
+          <label class="form-label">Montant à retirer (F)</label>
+          <input type="number" class="form-input" id="amount"
+            placeholder="Ex: 5000" min="1000" inputmode="numeric">
+          <div id="feeInfo" style="font-size:12px; color:var(--gray); margin-top:6px;"></div>
+        </div>
+
+        <!-- Pays -->
+        <div class="form-group">
+          <label class="form-label">Pays</label>
+          <select class="form-input" id="countryCode">
+            <option value="+228">🇹🇬 Togo — Flooz / TMoney</option>
+            <option value="+229">🇧🇯 Bénin — MTN / Moov</option>
+            <option value="+225">🇨🇮 Côte d'Ivoire — Wave / MTN</option>
+            <option value="+237">🇨🇲 Cameroun — MTN / Orange</option>
+          </select>
+        </div>
+
+        <!-- Numéro Mobile Money -->
+        <div class="form-group">
+          <label class="form-label">Numéro Mobile Money</label>
+          <input type="tel" class="form-input" id="mobileNumber"
+            placeholder="Ex: 90462515" inputmode="numeric">
+        </div>
+
+        <!-- Résumé -->
+        <div id="summaryBox" style="display:none; background:var(--dark3);
+          border-radius:var(--radius-sm); padding:16px; margin-bottom:16px;">
+          <div class="d-flex align-center justify-between mb-8">
+            <span style="font-size:13px; color:var(--gray);">Montant demandé</span>
+            <span style="font-weight:700;" id="summaryAmount">-</span>
+          </div>
+          <div class="d-flex align-center justify-between mb-8">
+            <span style="font-size:13px; color:var(--gray);">Frais (10%)</span>
+            <span style="font-weight:700; color:var(--danger);" id="summaryFee">-</span>
+          </div>
+          <div style="border-top:1px solid var(--border); margin:8px 0;"></div>
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:14px; font-weight:700;">Vous recevez</span>
+            <span style="font-size:18px; font-weight:900; color:var(--success);" id="summaryNet">-</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="withdrawBtn" onclick="handleWithdraw()">
+          <i class="ri-bank-card-line"></i> Demander le retrait
+        </button>
+
+      </div>
+
+      <!-- Historique retraits -->
+      <div style="margin-top:24px;">
+        <div class="section-title">Mes retraits</div>
+        <div id="withdrawHistory">
+          <div class="empty-state">
+            <i class="ri-bank-card-line"></i>
+            <p>Aucun retrait effectué</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item">
+      <i class="ri-home-5-line"></i><span>Accueil</span>
+    </a>
+    <a href="products.html" class="nav-item">
+      <i class="ri-store-2-line"></i><span>Investir</span>
+    </a>
+    <a href="team.html" class="nav-item">
+      <i class="ri-group-line"></i><span>Équipe</span>
+    </a>
+    <a href="profile.html" class="nav-item">
+      <i class="ri-user-3-line"></i><span>Moi</span>
+    </a>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    // Pré-remplir pays utilisateur
+    document.getElementById('countryCode').value  = user.country_code;
+    document.getElementById('mobileNumber').value = user.phone;
+
+    async function loadPage() {
+      const wallet = await getWallet(user.id);
+      if (wallet) {
+        document.getElementById('withdrawalBalance').textContent =
+          formatMoney(wallet.withdrawal_balance);
+      }
+
+      // Historique
+      const { data: withdrawals } = await db
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      const histEl = document.getElementById('withdrawHistory');
+      if (!withdrawals || withdrawals.length === 0) {
+        histEl.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-bank-card-line"></i>
+            <p>Aucun retrait effectué</p>
+          </div>`;
+        return;
+      }
+
+      histEl.innerHTML = withdrawals.map(w => {
+        const statusMap = {
+          pending:  { label: 'En attente', cls: 'badge-warning' },
+          approved: { label: 'Approuvé',   cls: 'badge-success' },
+          rejected: { label: 'Rejeté',     cls: 'badge-danger'  }
+        };
+        const s    = statusMap[w.status] || statusMap.pending;
+        const date = new Date(w.created_at).toLocaleDateString('fr-FR');
+        return `
+          <div class="card" style="margin-bottom:12px;">
+            <div class="d-flex align-center justify-between mb-8">
+              <span style="font-weight:700;">${formatMoney(w.amount)}</span>
+              <span class="badge ${s.cls}">${s.label}</span>
+            </div>
+            <div style="font-size:12px; color:var(--gray);">
+              Reçu : <strong style="color:var(--success);">${formatMoney(w.amount_net)}</strong>
+              · Frais : ${formatMoney(w.fee)}
+            </div>
+            <div style="font-size:12px; color:var(--gray); margin-top:4px;">
+              📱 ${w.country_code} ${w.mobile_number} · ${date}
+            </div>
+            ${w.admin_note ? `<div style="font-size:12px; color:var(--warning); margin-top:4px;">
+              Note : ${w.admin_note}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    // Calcul frais en temps réel
+    document.getElementById('amount').addEventListener('input', function() {
+      const amount = parseFloat(this.value);
+      if (!amount || amount < 1000) {
+        document.getElementById('feeInfo').textContent = '';
+        document.getElementById('summaryBox').style.display = 'none';
+        return;
+      }
+      const fee = amount * 0.10;
+      const net = amount - fee;
+      document.getElementById('feeInfo').textContent =
+        `Frais : ${formatMoney(fee)} → Vous recevez : ${formatMoney(net)}`;
+      document.getElementById('summaryAmount').textContent = formatMoney(amount);
+      document.getElementById('summaryFee').textContent    = formatMoney(fee);
+      document.getElementById('summaryNet').textContent    = formatMoney(net);
+      document.getElementById('summaryBox').style.display  = 'block';
+    });
+
+    async function handleWithdraw() {
+      const amount  = parseFloat(document.getElementById('amount').value);
+      const mobile  = document.getElementById('mobileNumber').value.trim();
+      const country = document.getElementById('countryCode').value;
+
+      const errEl = document.getElementById('alertError');
+      const sucEl = document.getElementById('alertSuccess');
+      errEl.classList.remove('show');
+      sucEl.classList.remove('show');
+
+      if (!amount || !mobile) {
+        errEl.textContent = 'Veuillez remplir tous les champs.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('withdrawBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+
+      const result = await requestWithdrawal(user.id, amount, mobile, country);
+
+      if (result.error) {
+        errEl.textContent = result.error;
+        errEl.classList.add('show');
+        btn.innerHTML = '<i class="ri-bank-card-line"></i> Demander le retrait';
+        btn.disabled  = false;
+        return;
+      }
+
+      sucEl.textContent = `Demande envoyée ! Vous recevrez ${formatMoney(result.amount_net)} sur votre Mobile Money.`;
+      sucEl.classList.add('show');
+      document.getElementById('amount').value = '';
+      document.getElementById('summaryBox').style.display = 'none';
+      btn.innerHTML = '<i class="ri-bank-card-line"></i> Demander le retrait';
+      btn.disabled  = false;
+      loadPage();
+    }
+
+    loadPage();
+  </script>
+
+</body>
+</html>

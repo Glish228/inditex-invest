@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Investir</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+    <div style="color:var(--gray); font-size:13px; font-weight:600;">Nos Plans</div>
+  </div>
+
+  <!-- PAGE -->
+  <div class="page">
+    <div class="container">
+
+      <!-- Soldes -->
+      <div class="wallet-grid" style="margin-bottom:20px;">
+        <div class="wallet-card">
+          <div class="wallet-label">💰 Portefeuille Unique</div>
+          <div class="wallet-amount" id="uniqueBalance">0 F</div>
+        </div>
+        <div class="wallet-card secondary">
+          <div class="wallet-label">💳 Portefeuille Retrait</div>
+          <div class="wallet-amount" id="withdrawalBalance">0 F</div>
+        </div>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert alert-danger" id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
+
+      <!-- Plan Fixe -->
+      <div class="section-title">Plan Fixe</div>
+      <div id="fixedPlanContainer"></div>
+
+      <!-- Plans Courts -->
+      <div class="section-title" style="margin-top:8px;">Plans à Courte Durée</div>
+      <div class="alert alert-info show" style="margin-bottom:16px;">
+        <i class="ri-information-line"></i>
+        Activez d'abord votre compte avec le plan fixe pour accéder aux plans courts.
+      </div>
+      <div id="shortPlansContainer"></div>
+
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMATION ACHAT -->
+  <div class="modal-overlay" id="buyModal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modalTitle">Confirmer l'achat</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="d-flex align-center justify-between mb-8">
+          <span style="color:var(--gray); font-size:13px;">Plan</span>
+          <span style="font-weight:700;" id="modalPlanName">-</span>
+        </div>
+        <div class="d-flex align-center justify-between mb-8">
+          <span style="color:var(--gray); font-size:13px;">Prix</span>
+          <span style="font-weight:700; color:var(--primary);" id="modalPrice">-</span>
+        </div>
+        <div class="d-flex align-center justify-between mb-8">
+          <span style="color:var(--gray); font-size:13px;">Durée</span>
+          <span style="font-weight:700;" id="modalDuration">-</span>
+        </div>
+        <div class="d-flex align-center justify-between mb-8">
+          <span style="color:var(--gray); font-size:13px;">Gain total</span>
+          <span style="font-weight:700; color:var(--success);" id="modalGain">-</span>
+        </div>
+        <div class="d-flex align-center justify-between" id="modalBonusRow" style="display:none!important;">
+          <span style="color:var(--gray); font-size:13px;">Bonus</span>
+          <span style="font-weight:700; color:var(--warning);" id="modalBonus">-</span>
+        </div>
+      </div>
+
+      <!-- Méthode de paiement -->
+      <div class="form-group">
+        <label class="form-label">Méthode de paiement</label>
+        <select class="form-input" id="paymentMethod">
+          <option value="mobile_money">Mobile Money</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Numéro Mobile Money</label>
+        <div class="form-input-group">
+          <select id="payCountry" class="form-input" style="width:140px; flex-shrink:0;">
+            <option value="+228">🇹🇬 +228</option>
+            <option value="+229">🇧🇯 +229</option>
+            <option value="+225">🇨🇮 +225</option>
+            <option value="+237">🇨🇲 +237</option>
+          </select>
+          <input type="tel" class="form-input" id="payPhone"
+            placeholder="Numéro" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="alert alert-danger" id="modalAlert"></div>
+
+      <div style="display:flex; gap:12px; margin-top:8px;">
+        <button class="btn btn-outline" onclick="closeModal()" style="flex:1;">
+          Annuler
+        </button>
+        <button class="btn btn-primary" id="confirmBtn" onclick="confirmPurchase()" style="flex:2;">
+          <i class="ri-check-line"></i> Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item">
+      <i class="ri-home-5-line"></i><span>Accueil</span>
+    </a>
+    <a href="products.html" class="nav-item active">
+      <i class="ri-store-2-line"></i><span>Investir</span>
+    </a>
+    <a href="team.html" class="nav-item">
+      <i class="ri-group-line"></i><span>Équipe</span>
+    </a>
+    <a href="profile.html" class="nav-item">
+      <i class="ri-user-3-line"></i><span>Moi</span>
+    </a>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    let selectedPlan = null;
+    let userHasFixed = false;
+    let userShortCount = 0;
+
+    async function loadProducts() {
+      const wallet = await getWallet(user.id);
+      if (wallet) {
+        document.getElementById('uniqueBalance').textContent     = formatMoney(wallet.unique_balance);
+        document.getElementById('withdrawalBalance').textContent = formatMoney(wallet.withdrawal_balance);
+      }
+
+      const plans    = await getPlans();
+      const myPlans  = await getUserPlans(user.id);
+      userHasFixed   = myPlans.some(p => p.type === 'fixed');
+      userShortCount = myPlans.filter(p => p.type === 'short').length;
+
+      const fixedPlan  = plans.find(p => p.type === 'fixed');
+      const shortPlans = plans.filter(p => p.type === 'short');
+
+      // Plan fixe
+      const fixedContainer = document.getElementById('fixedPlanContainer');
+      if (fixedPlan) {
+        if (userHasFixed) {
+          fixedContainer.innerHTML = `
+            <div class="card" style="text-align:center; border-color:var(--success);">
+              <i class="ri-checkbox-circle-line" style="font-size:36px; color:var(--success);"></i>
+              <p style="font-weight:700; margin-top:8px;">Plan fixe déjà activé ✓</p>
+              <p style="font-size:12px; color:var(--gray); margin-top:4px;">
+                Votre compte est actif. Accédez aux plans courts ci-dessous.
+              </p>
+            </div>`;
+        } else {
+          fixedContainer.innerHTML = buildFixedCard(fixedPlan);
+        }
+      }
+
+      // Plans courts
+      const shortContainer = document.getElementById('shortPlansContainer');
+      if (!userHasFixed) {
+        shortContainer.innerHTML = '';
+        return;
+      }
+      document.querySelector('.alert-info').style.display = 'none';
+      shortContainer.innerHTML = shortPlans.map(p => buildShortCard(p)).join('');
+    }
+
+    function buildFixedCard(plan) {
+      return `
+        <div class="plan-card" onclick="openModal('${plan.id}')">
+          <div class="plan-card-bg" style="background-image:url('${plan.image}')"></div>
+          <div class="plan-card-overlay"></div>
+          <div class="plan-card-content">
+            <div>
+              <span class="plan-badge">⭐ PLAN FIXE</span>
+              <div class="plan-name">${plan.name}</div>
+              <div class="plan-price">${formatMoney(plan.price)}</div>
+              <div class="plan-info">
+                <div class="plan-info-item">⏱ <strong>${plan.duration_days} jours</strong></div>
+                <div class="plan-info-item">📈 <strong>${formatMoney(plan.daily_gain)}/jour</strong></div>
+                <div class="plan-info-item">🎁 Bonus <strong>500 F</strong></div>
+              </div>
+            </div>
+            <button class="plan-btn">
+              <i class="ri-shopping-cart-line"></i> Activer le compte
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function buildShortCard(plan) {
+      const gainAmount = plan.price * (plan.total_gain_percent / 100) + plan.price;
+      const isFirst    = userShortCount === 0;
+      return `
+        <div class="plan-card" onclick="openModal('${plan.id}')">
+          <div class="plan-card-bg" style="background-image:url('${plan.image}')"></div>
+          <div class="plan-card-overlay"></div>
+          <div class="plan-card-content">
+            <div>
+              <span class="plan-badge">🚀 ${plan.duration_days} JOURS</span>
+              <div class="plan-name">${plan.name}</div>
+              <div class="plan-price">${formatMoney(plan.price)}</div>
+              <div class="plan-info">
+                <div class="plan-info-item">📈 Gain <strong>+${plan.total_gain_percent}%</strong></div>
+                <div class="plan-info-item">💰 Total <strong>${formatMoney(gainAmount)}</strong></div>
+                ${isFirst ? '<div class="plan-info-item">🎉 Bonus <strong>500 F</strong></div>' : ''}
+              </div>
+            </div>
+            <button class="plan-btn">
+              <i class="ri-shopping-cart-line"></i> Investir
+            </button>
+          </div>
+        </div>`;
+    }
+
+    let allPlans = [];
+
+    async function openModal(planId) {
+      if (!allPlans.length) allPlans = await getPlans();
+      selectedPlan = allPlans.find(p => p.id === planId);
+      if (!selectedPlan) return;
+
+      const isFixed    = selectedPlan.type === 'fixed';
+      const gainAmount = isFixed
+        ? selectedPlan.daily_gain * selectedPlan.duration_days
+        : selectedPlan.price * (selectedPlan.total_gain_percent / 100) + selectedPlan.price;
+
+      document.getElementById('modalTitle').textContent   = isFixed ? 'Activer le plan fixe' : 'Confirmer l\'investissement';
+      document.getElementById('modalPlanName').textContent = selectedPlan.name;
+      document.getElementById('modalPrice').textContent    = formatMoney(selectedPlan.price);
+      document.getElementById('modalDuration').textContent = selectedPlan.duration_days + ' jours';
+      document.getElementById('modalGain').textContent     = formatMoney(gainAmount);
+
+      const bonusRow = document.getElementById('modalBonusRow');
+      if (isFixed) {
+        bonusRow.style.display = 'flex';
+        document.getElementById('modalBonus').textContent = '+ 500 F (activation)';
+      } else if (userShortCount === 0) {
+        bonusRow.style.display = 'flex';
+        document.getElementById('modalBonus').textContent = '+ 500 F (premier plan)';
+      } else {
+        bonusRow.style.display = 'none';
+      }
+
+      // Pré-remplir pays utilisateur
+      document.getElementById('payCountry').value = user.country_code;
+      document.getElementById('payPhone').value   = user.phone;
+
+      document.getElementById('modalAlert').classList.remove('show');
+      document.getElementById('buyModal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('buyModal').classList.remove('show');
+      selectedPlan = null;
+    }
+
+    // Fermer modal en cliquant l'overlay
+    document.getElementById('buyModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    async function confirmPurchase() {
+      if (!selectedPlan) return;
+
+      const payPhone   = document.getElementById('payPhone').value.trim();
+      const payCountry = document.getElementById('payCountry').value;
+      const alertEl    = document.getElementById('modalAlert');
+
+      if (!payPhone) {
+        alertEl.textContent = 'Entrez votre numéro Mobile Money.';
+        alertEl.classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('confirmBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+
+      // Initier dépôt via Flinpay
+      const depositResult = await initiateFlinpayDeposit(
+        user.id,
+        selectedPlan,
+        payPhone,
+        payCountry
+      );
+
+      if (depositResult.error) {
+        alertEl.textContent = depositResult.error;
+        alertEl.classList.add('show');
+        btn.innerHTML = '<i class="ri-check-line"></i> Confirmer';
+        btn.disabled  = false;
+        return;
+      }
+
+      closeModal();
+      document.getElementById('alertSuccess').textContent =
+        'Paiement initié ! Validez sur votre téléphone.';
+      document.getElementById('alertSuccess').classList.add('show');
+
+      setTimeout(() => {
+        document.getElementById('alertSuccess').classList.remove('show');
+        loadProducts();
+      }, 4000);
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>

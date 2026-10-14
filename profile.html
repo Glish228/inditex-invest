@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Mon Profil</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+    <div style="color:var(--gray); font-size:13px; font-weight:600;">Mon Profil</div>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <!-- Avatar + infos -->
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="width:80px; height:80px; border-radius:50%;
+          background:linear-gradient(135deg,var(--primary),var(--blue));
+          display:flex; align-items:center; justify-content:center;
+          font-size:32px; font-weight:900; margin:0 auto 12px;">
+          <span id="avatarLetter">?</span>
+        </div>
+        <div style="font-size:20px; font-weight:800;" id="profileName">...</div>
+        <div style="font-size:13px; color:var(--gray); margin-top:4px;" id="profilePhone">...</div>
+        <div style="margin-top:8px;" id="profileStatus"></div>
+      </div>
+
+      <!-- Infos compte -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="font-size:14px; margin-bottom:12px;">
+          Informations du compte
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:13px; color:var(--gray);">
+              <i class="ri-user-line"></i> Nom complet
+            </span>
+            <span style="font-weight:600; font-size:13px;" id="infoName">-</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:13px; color:var(--gray);">
+              <i class="ri-phone-line"></i> Téléphone
+            </span>
+            <span style="font-weight:600; font-size:13px;" id="infoPhone">-</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:13px; color:var(--gray);">
+              <i class="ri-map-pin-line"></i> Pays
+            </span>
+            <span style="font-weight:600; font-size:13px;" id="infoCountry">-</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:13px; color:var(--gray);">
+              <i class="ri-gift-line"></i> Code parrainage
+            </span>
+            <span style="font-weight:700; color:var(--primary); letter-spacing:3px;"
+              id="infoRef">-</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <span style="font-size:13px; color:var(--gray);">
+              <i class="ri-calendar-line"></i> Membre depuis
+            </span>
+            <span style="font-weight:600; font-size:13px;" id="infoDate">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Changer mot de passe -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="font-size:14px; margin-bottom:12px;">
+          Changer le mot de passe
+        </div>
+        <div class="alert alert-danger" id="passError"></div>
+        <div class="alert alert-success" id="passSuccess"></div>
+        <div class="form-group">
+          <label class="form-label">Ancien mot de passe</label>
+          <input type="password" class="form-input" id="oldPass"
+            placeholder="••••••" maxlength="6" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe (6 chiffres)</label>
+          <input type="password" class="form-input" id="newPass"
+            placeholder="••••••" maxlength="6" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmer nouveau mot de passe</label>
+          <input type="password" class="form-input" id="confirmPass"
+            placeholder="••••••" maxlength="6" inputmode="numeric">
+        </div>
+        <button class="btn btn-primary" id="changePassBtn" onclick="changePassword()">
+          <i class="ri-lock-password-line"></i> Modifier le mot de passe
+        </button>
+      </div>
+
+      <!-- Menu -->
+      <div class="card" style="margin-bottom:16px;">
+        <a href="history.html" style="display:flex; align-items:center; gap:12px;
+          padding:12px 0; border-bottom:1px solid var(--border); text-decoration:none; color:var(--white);">
+          <i class="ri-file-list-3-line" style="font-size:20px; color:var(--primary);"></i>
+          <span style="flex:1; font-size:14px; font-weight:600;">Historique des transactions</span>
+          <i class="ri-arrow-right-s-line" style="color:var(--gray);"></i>
+        </a>
+        <a href="withdraw.html" style="display:flex; align-items:center; gap:12px;
+          padding:12px 0; border-bottom:1px solid var(--border); text-decoration:none; color:var(--white);">
+          <i class="ri-bank-card-line" style="font-size:20px; color:var(--primary);"></i>
+          <span style="flex:1; font-size:14px; font-weight:600;">Mes retraits</span>
+          <i class="ri-arrow-right-s-line" style="color:var(--gray);"></i>
+        </a>
+        <a href="support.html" style="display:flex; align-items:center; gap:12px;
+          padding:12px 0; border-bottom:1px solid var(--border); text-decoration:none; color:var(--white);">
+          <i class="ri-customer-service-2-line" style="font-size:20px; color:var(--primary);"></i>
+          <span style="flex:1; font-size:14px; font-weight:600;">Support client</span>
+          <i class="ri-arrow-right-s-line" style="color:var(--gray);"></i>
+        </a>
+        <a href="https://t.me/inditexofficiel" target="_blank"
+          style="display:flex; align-items:center; gap:12px;
+          padding:12px 0; border-bottom:1px solid var(--border); text-decoration:none; color:var(--white);">
+          <i class="ri-telegram-fill" style="font-size:20px; color:#29b6f6;"></i>
+          <span style="flex:1; font-size:14px; font-weight:600;">Canal Telegram</span>
+          <i class="ri-arrow-right-s-line" style="color:var(--gray);"></i>
+        </a>
+        <div onclick="handleLogout()" style="display:flex; align-items:center; gap:12px;
+          padding:12px 0; cursor:pointer;">
+          <i class="ri-logout-box-line" style="font-size:20px; color:var(--danger);"></i>
+          <span style="flex:1; font-size:14px; font-weight:600; color:var(--danger);">Se déconnecter</span>
+          <i class="ri-arrow-right-s-line" style="color:var(--gray);"></i>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item">
+      <i class="ri-home-5-line"></i><span>Accueil</span>
+    </a>
+    <a href="products.html" class="nav-item">
+      <i class="ri-store-2-line"></i><span>Investir</span>
+    </a>
+    <a href="team.html" class="nav-item">
+      <i class="ri-group-line"></i><span>Équipe</span>
+    </a>
+    <a href="profile.html" class="nav-item active">
+      <i class="ri-user-3-line"></i><span>Moi</span>
+    </a>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    const countryNames = {
+      '+228': '🇹🇬 Togo',
+      '+229': '🇧🇯 Bénin',
+      '+225': '🇨🇮 Côte d\'Ivoire',
+      '+237': '🇨🇲 Cameroun'
+    };
+
+    function loadProfile() {
+      document.getElementById('avatarLetter').textContent = user.full_name.charAt(0).toUpperCase();
+      document.getElementById('profileName').textContent  = user.full_name;
+      document.getElementById('profilePhone').textContent = user.country_code + ' ' + user.phone;
+      document.getElementById('profileStatus').innerHTML  = user.is_active
+        ? '<span class="badge badge-success">✓ Compte actif</span>'
+        : '<span class="badge badge-warning">⚠ Compte non activé</span>';
+      document.getElementById('infoName').textContent    = user.full_name;
+      document.getElementById('infoPhone').textContent   = user.country_code + ' ' + user.phone;
+      document.getElementById('infoCountry').textContent = countryNames[user.country_code] || user.country_code;
+      document.getElementById('infoRef').textContent     = user.referral_code;
+      document.getElementById('infoDate').textContent    = new Date(user.created_at).toLocaleDateString('fr-FR');
+    }
+
+    // Forcer chiffres uniquement
+    ['oldPass','newPass','confirmPass'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+      });
+    });
+
+    async function changePassword() {
+      const oldP  = document.getElementById('oldPass').value.trim();
+      const newP  = document.getElementById('newPass').value.trim();
+      const confP = document.getElementById('confirmPass').value.trim();
+      const errEl = document.getElementById('passError');
+      const sucEl = document.getElementById('passSuccess');
+      errEl.classList.remove('show');
+      sucEl.classList.remove('show');
+
+      if (!oldP || !newP || !confP) {
+        errEl.textContent = 'Veuillez remplir tous les champs.';
+        errEl.classList.add('show');
+        return;
+      }
+      if (oldP !== user.password) {
+        errEl.textContent = 'Ancien mot de passe incorrect.';
+        errEl.classList.add('show');
+        return;
+      }
+      if (newP.length !== 6 || isNaN(newP)) {
+        errEl.textContent = 'Le nouveau mot de passe doit contenir 6 chiffres.';
+        errEl.classList.add('show');
+        return;
+      }
+      if (newP !== confP) {
+        errEl.textContent = 'Les mots de passe ne correspondent pas.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('changePassBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+
+      const { error } = await db
+        .from('users')
+        .update({ password: newP })
+        .eq('id', user.id);
+
+      if (error) {
+        errEl.textContent = 'Erreur lors de la modification.';
+        errEl.classList.add('show');
+      } else {
+        // Mettre à jour la session
+        const updatedUser = { ...user, password: newP };
+        saveSession(updatedUser);
+        sucEl.textContent = 'Mot de passe modifié avec succès !';
+        sucEl.classList.add('show');
+        document.getElementById('oldPass').value  = '';
+        document.getElementById('newPass').value  = '';
+        document.getElementById('confirmPass').value = '';
+      }
+
+      btn.innerHTML = '<i class="ri-lock-password-line"></i> Modifier le mot de passe';
+      btn.disabled  = false;
+    }
+
+    function handleLogout() {
+      if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+        clearSession();
+        window.location.href = 'index.html';
+      }
+    }
+
+    loadProfile();
+  </script>
+
+</body>
+</html>

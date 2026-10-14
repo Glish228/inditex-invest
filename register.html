@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Inscription</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <section class="hero" style="min-height:100vh; align-items:flex-start;">
+    <div class="hero-bg" style="background-image:url('assets/IMG-20261014-WA0007.jpg')"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content" style="width:100%; max-width:480px; padding:80px 20px 40px;">
+
+      <!-- Logo -->
+      <div style="margin-bottom:24px;">
+        <div class="brand-logo" style="font-size:26px;">INDITEX</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-top:6px;">
+          Créez votre compte gratuitement
+        </p>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert alert-danger" id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
+
+      <!-- Formulaire -->
+      <div class="card-glass">
+
+        <!-- Pays -->
+        <div class="form-group">
+          <label class="form-label">Pays</label>
+          <select class="form-input" id="countryCode">
+            <option value="+228">🇹🇬 Togo (+228)</option>
+            <option value="+229">🇧🇯 Bénin (+229)</option>
+            <option value="+225">🇨🇮 Côte d'Ivoire (+225)</option>
+            <option value="+237">🇨🇲 Cameroun (+237)</option>
+          </select>
+        </div>
+
+        <!-- Téléphone -->
+        <div class="form-group">
+          <label class="form-label">Numéro de téléphone</label>
+          <input type="tel" class="form-input" id="phone"
+            placeholder="Ex: 90462515" maxlength="12" inputmode="numeric">
+        </div>
+
+        <!-- Nom complet -->
+        <div class="form-group">
+          <label class="form-label">Nom et Prénom</label>
+          <input type="text" class="form-input" id="fullName"
+            placeholder="Ex: Kofi Amevor">
+        </div>
+
+        <!-- Mot de passe -->
+        <div class="form-group">
+          <label class="form-label">Mot de passe (6 chiffres)</label>
+          <div style="position:relative;">
+            <input type="password" class="form-input" id="password"
+              placeholder="••••••" maxlength="6" inputmode="numeric"
+              style="padding-right:48px;">
+            <button onclick="togglePass()" style="position:absolute; right:14px;
+              top:50%; transform:translateY(-50%); background:none; border:none;
+              cursor:pointer; color:var(--gray); font-size:20px;">
+              <i class="ri-eye-line" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirmer mot de passe -->
+        <div class="form-group">
+          <label class="form-label">Confirmer le mot de passe</label>
+          <input type="password" class="form-input" id="passwordConfirm"
+            placeholder="••••••" maxlength="6" inputmode="numeric">
+        </div>
+
+        <!-- Code parrainage -->
+        <div class="form-group">
+          <label class="form-label">
+            Code de parrainage
+            <span style="color:var(--gray); font-weight:400;">(optionnel)</span>
+          </label>
+          <input type="text" class="form-input" id="referralCode"
+            placeholder="Ex: AB12" maxlength="4"
+            style="text-transform:uppercase; letter-spacing:4px; font-weight:700;">
+        </div>
+
+        <!-- Bouton -->
+        <button class="btn btn-primary" id="registerBtn" onclick="handleRegister()">
+          <i class="ri-user-add-line"></i> Créer mon compte
+        </button>
+
+      </div>
+
+      <!-- Lien connexion -->
+      <p style="text-align:center; margin-top:20px; font-size:14px; color:rgba(255,255,255,0.6);">
+        Déjà un compte ?
+        <a href="login.html" style="color:var(--primary); font-weight:700;">Se connecter</a>
+      </p>
+
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    // Rediriger si déjà connecté
+    if (getSession()) window.location.href = 'dashboard.html';
+
+    // Remplir code parrainage auto depuis l'URL
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      const input = document.getElementById('referralCode');
+      input.value = refCode.toUpperCase();
+      input.readOnly = true;
+      input.style.background = 'rgba(108,60,255,0.1)';
+      input.style.borderColor = 'var(--primary)';
+    }
+
+    function togglePass() {
+      const input = document.getElementById('password');
+      const icon  = document.getElementById('eyeIcon');
+      input.type  = input.type === 'password' ? 'text' : 'password';
+      icon.className = input.type === 'password' ? 'ri-eye-line' : 'ri-eye-off-line';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('alertError');
+      el.textContent = msg;
+      el.classList.add('show');
+      document.getElementById('alertSuccess').classList.remove('show');
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('alertSuccess');
+      el.textContent = msg;
+      el.classList.add('show');
+      document.getElementById('alertError').classList.remove('show');
+    }
+
+    // Forcer chiffres pour mots de passe
+    ['password','passwordConfirm'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+      });
+    });
+
+    // Forcer majuscules pour code parrainage
+    document.getElementById('referralCode').addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    async function handleRegister() {
+      const country  = document.getElementById('countryCode').value;
+      const phone    = document.getElementById('phone').value.trim();
+      const fullName = document.getElementById('fullName').value.trim();
+      const pass     = document.getElementById('password').value.trim();
+      const passConf = document.getElementById('passwordConfirm').value.trim();
+      const refCode  = document.getElementById('referralCode').value.trim().toUpperCase();
+
+      // Validations
+      if (!phone || !fullName || !pass || !passConf) {
+        showError('Veuillez remplir tous les champs obligatoires.');
+        return;
+      }
+      if (pass.length !== 6 || isNaN(pass)) {
+        showError('Le mot de passe doit contenir exactement 6 chiffres.');
+        return;
+      }
+      if (pass !== passConf) {
+        showError('Les mots de passe ne correspondent pas.');
+        return;
+      }
+      if (refCode && refCode.length !== 4) {
+        showError('Le code de parrainage doit contenir 4 caractères.');
+        return;
+      }
+
+      // Vérifier que le code parrainage existe si fourni
+      if (refCode) {
+        const { data: refUser } = await db
+          .from('users')
+          .select('id')
+          .eq('referral_code', refCode)
+          .maybeSingle();
+        if (!refUser) {
+          showError('Code de parrainage invalide.');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('registerBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled = true;
+
+      const { user, error } = await registerUser({
+        phone,
+        country_code: country,
+        full_name: fullName,
+        password: pass,
+        referred_by: refCode || null
+      });
+
+      if (error) {
+        showError(error);
+        btn.innerHTML = '<i class="ri-user-add-line"></i> Créer mon compte';
+        btn.disabled = false;
+        return;
+      }
+
+      showSuccess('Compte créé avec succès ! Redirection...');
+      saveSession(user);
+      setTimeout(() => window.location.href = 'dashboard.html', 1500);
+    }
+  </script>
+
+</body>
+</html>

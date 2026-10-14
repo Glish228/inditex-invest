@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Mon Équipe</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+    <div style="color:var(--gray); font-size:13px; font-weight:600;">Mon Équipe</div>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <!-- Lien parrainage -->
+      <div class="referral-box" style="margin-bottom:20px;">
+        <div style="font-size:12px; opacity:0.8; margin-bottom:4px;">Mon code de parrainage</div>
+        <div class="referral-code" id="myRefCode">----</div>
+        <div class="referral-link" id="myRefLink">...</div>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:12px;">
+          <button onclick="copyLink()" class="btn btn-outline btn-sm"
+            style="border-color:rgba(255,255,255,0.5); color:var(--white);">
+            <i class="ri-file-copy-line"></i> Copier
+          </button>
+          <button onclick="shareLink()" class="btn btn-outline btn-sm"
+            style="border-color:rgba(255,255,255,0.5); color:var(--white);">
+            <i class="ri-share-line"></i> Partager
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats parrainage -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-value" id="totalReferrals">0</div>
+          <div class="stat-label">Filleuls directs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalEarned">0 F</div>
+          <div class="stat-label">Gains parrainage</div>
+        </div>
+      </div>
+
+      <!-- Niveaux bonus -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="font-size:14px; margin-bottom:12px;">
+          Commissions par niveau
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="d-flex align-center justify-between">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:32px; height:32px; background:rgba(108,60,255,0.15);
+                border-radius:50%; display:flex; align-items:center; justify-content:center;
+                font-size:14px; font-weight:700; color:var(--primary);">1</div>
+              <span style="font-size:13px;">Filleuls directs</span>
+            </div>
+            <span class="badge badge-primary">25%</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:32px; height:32px; background:rgba(108,60,255,0.1);
+                border-radius:50%; display:flex; align-items:center; justify-content:center;
+                font-size:14px; font-weight:700; color:var(--primary);">2</div>
+              <span style="font-size:13px;">Filleuls de mes filleuls</span>
+            </div>
+            <span class="badge badge-primary">3%</span>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:32px; height:32px; background:rgba(108,60,255,0.08);
+                border-radius:50%; display:flex; align-items:center; justify-content:center;
+                font-size:14px; font-weight:700; color:var(--primary);">3</div>
+              <span style="font-size:13px;">Niveau 3</span>
+            </div>
+            <span class="badge badge-primary">1%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste filleuls -->
+      <div class="section-title">Mes filleuls directs</div>
+      <div id="referralList">
+        <div class="empty-state">
+          <i class="ri-group-line"></i>
+          <p>Aucun filleul pour l'instant.<br>Partagez votre lien pour commencer !</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item">
+      <i class="ri-home-5-line"></i><span>Accueil</span>
+    </a>
+    <a href="products.html" class="nav-item">
+      <i class="ri-store-2-line"></i><span>Investir</span>
+    </a>
+    <a href="team.html" class="nav-item active">
+      <i class="ri-group-line"></i><span>Équipe</span>
+    </a>
+    <a href="profile.html" class="nav-item">
+      <i class="ri-user-3-line"></i><span>Moi</span>
+    </a>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    const refLink = `${window.location.origin}/register.html?ref=${user.referral_code}`;
+    document.getElementById('myRefCode').textContent = user.referral_code;
+    document.getElementById('myRefLink').textContent = refLink;
+
+    function copyLink() {
+      navigator.clipboard.writeText(refLink).then(() => alert('Lien copié !'));
+    }
+
+    function shareLink() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Rejoins INDITEX',
+          text: 'Investissez et gagnez quotidiennement avec INDITEX !',
+          url: refLink
+        });
+      } else {
+        copyLink();
+      }
+    }
+
+    async function loadTeam() {
+      // Filleuls directs
+      const { data: referrals } = await db
+        .from('users')
+        .select('id, full_name, phone, country_code, is_active, created_at')
+        .eq('referred_by', user.referral_code)
+        .order('created_at', { ascending: false });
+
+      document.getElementById('totalReferrals').textContent =
+        referrals ? referrals.length : 0;
+
+      // Gains parrainage
+      const { data: gains } = await db
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', user.id)
+        .eq('type', 'referral');
+
+      const total = gains ? gains.reduce((s, t) => s + Number(t.amount), 0) : 0;
+      document.getElementById('totalEarned').textContent = formatMoney(total);
+
+      // Liste filleuls
+      const listEl = document.getElementById('referralList');
+      if (!referrals || referrals.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-group-line"></i>
+            <p>Aucun filleul pour l'instant.<br>Partagez votre lien pour commencer !</p>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = referrals.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('fr-FR');
+        return `
+          <div class="card" style="margin-bottom:12px;">
+            <div class="d-flex align-center gap-12">
+              <div style="width:42px; height:42px; border-radius:50%;
+                background:linear-gradient(135deg,var(--primary),var(--blue));
+                display:flex; align-items:center; justify-content:center;
+                font-size:18px; font-weight:900; flex-shrink:0;">
+                ${r.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:14px;">${r.full_name}</div>
+                <div style="font-size:12px; color:var(--gray);">
+                  ${r.country_code} ${r.phone} · Inscrit le ${date}
+                </div>
+              </div>
+              <span class="badge ${r.is_active ? 'badge-success' : 'badge-warning'}">
+                ${r.is_active ? 'Actif' : 'Inactif'}
+              </span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    loadTeam();
+  </script>
+
+</body>
+</html>

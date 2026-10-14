@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Connexion</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <section class="hero" style="min-height: 100vh;">
+    <div class="hero-bg" style="background-image: url('assets/IMG-20261014-WA0006.jpg')"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content" style="width:100%; max-width:480px; padding: 24px 20px;">
+
+      <!-- Logo -->
+      <div style="margin-bottom: 32px;">
+        <div class="brand-logo" style="font-size:28px;">INDITEX</div>
+        <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-top:6px;">
+          Connectez-vous à votre compte
+        </p>
+      </div>
+
+      <!-- Alert -->
+      <div class="alert alert-danger" id="alertBox"></div>
+
+      <!-- Formulaire -->
+      <div class="card-glass">
+
+        <!-- Choix pays -->
+        <div class="form-group">
+          <label class="form-label">Pays</label>
+          <select class="form-input" id="countryCode">
+            <option value="+228">🇹🇬 Togo (+228)</option>
+            <option value="+229">🇧🇯 Bénin (+229)</option>
+            <option value="+225">🇨🇮 Côte d'Ivoire (+225)</option>
+            <option value="+237">🇨🇲 Cameroun (+237)</option>
+          </select>
+        </div>
+
+        <!-- Numéro -->
+        <div class="form-group">
+          <label class="form-label">Numéro de téléphone</label>
+          <input type="tel" class="form-input" id="phone"
+            placeholder="Ex: 90462515" maxlength="12">
+        </div>
+
+        <!-- Mot de passe -->
+        <div class="form-group">
+          <label class="form-label">Mot de passe (6 chiffres)</label>
+          <div style="position:relative;">
+            <input type="password" class="form-input" id="password"
+              placeholder="••••••" maxlength="6" inputmode="numeric"
+              style="padding-right: 48px;">
+            <button onclick="togglePassword()" id="eyeBtn"
+              style="position:absolute; right:14px; top:50%; transform:translateY(-50%);
+                     background:none; border:none; cursor:pointer; color:var(--gray); font-size:20px;">
+              <i class="ri-eye-line" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bouton connexion -->
+        <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+          <i class="ri-login-box-line"></i> Se connecter
+        </button>
+
+      </div>
+
+      <!-- Lien inscription -->
+      <p style="text-align:center; margin-top:20px; font-size:14px; color:rgba(255,255,255,0.6);">
+        Pas encore de compte ?
+        <a href="register.html" style="color:var(--primary); font-weight:700;">S'inscrire</a>
+      </p>
+
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    // Rediriger si déjà connecté
+    if (getSession()) window.location.href = 'dashboard.html';
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'ri-eye-off-line';
+      } else {
+        input.type = 'password';
+        icon.className = 'ri-eye-line';
+      }
+    }
+
+    function showAlert(msg) {
+      const box = document.getElementById('alertBox');
+      box.textContent = msg;
+      box.classList.add('show');
+    }
+
+    function hideAlert() {
+      document.getElementById('alertBox').classList.remove('show');
+    }
+
+    async function handleLogin() {
+      hideAlert();
+      const country = document.getElementById('countryCode').value;
+      const phone   = document.getElementById('phone').value.trim();
+      const pass    = document.getElementById('password').value.trim();
+
+      if (!phone || !pass) {
+        showAlert('Veuillez remplir tous les champs.');
+        return;
+      }
+      if (pass.length !== 6 || isNaN(pass)) {
+        showAlert('Le mot de passe doit contenir exactement 6 chiffres.');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled = true;
+
+      const { user, error } = await loginUser(country, phone, pass);
+
+      if (error) {
+        showAlert(error);
+        btn.innerHTML = '<i class="ri-login-box-line"></i> Se connecter';
+        btn.disabled = false;
+        return;
+      }
+
+      saveSession(user);
+      window.location.href = 'dashboard.html';
+    }
+
+    // Connexion avec touche Entrée
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    // Forcer chiffres uniquement pour mot de passe
+    document.getElementById('password').addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '');
+    });
+  </script>
+
+</body>
+</html>
