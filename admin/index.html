@@ -1,14 +1,352 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX Admin - Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
 </head>
+<body class="admin-body">
 
-<body>
-  
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-item active">
+        <i class="ri-dashboard-line"></i> Dashboard
+      </a>
+      <a href="users.html" class="sidebar-item">
+        <i class="ri-group-line"></i> Utilisateurs
+      </a>
+      <a href="withdrawals.html" class="sidebar-item">
+        <i class="ri-bank-card-line"></i> Retraits
+      </a>
+      <a href="deposits.html" class="sidebar-item">
+        <i class="ri-money-dollar-circle-line"></i> Dépôts
+      </a>
+      <a href="support.html" class="sidebar-item">
+        <i class="ri-customer-service-2-line"></i> Support
+        <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
+      </a>
+      <a href="plans.html" class="sidebar-item">
+        <i class="ri-store-2-line"></i> Plans
+      </a>
+      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+        <i class="ri-logout-box-line"></i> Déconnexion
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+
+    <!-- TOPBAR ADMIN -->
+    <div class="admin-topbar">
+      <button onclick="toggleSidebar()" class="menu-btn">
+        <i class="ri-menu-line"></i>
+      </button>
+      <div style="font-size:16px; font-weight:700;">Dashboard</div>
+      <div style="font-size:13px; color:var(--gray);" id="adminDate"></div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Stats principales -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(108,60,255,0.15); color:var(--primary);">
+            <i class="ri-group-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="totalUsers">0</div>
+            <div class="admin-stat-label">Utilisateurs total</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(34,197,94,0.15); color:var(--success);">
+            <i class="ri-user-follow-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="activeUsers">0</div>
+            <div class="admin-stat-label">Comptes actifs</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(245,158,11,0.15); color:var(--warning);">
+            <i class="ri-time-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="pendingWithdrawals">0</div>
+            <div class="admin-stat-label">Retraits en attente</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(26,115,232,0.15); color:var(--blue);">
+            <i class="ri-money-dollar-circle-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="totalDeposits">0 F</div>
+            <div class="admin-stat-label">Total dépôts</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(239,68,68,0.15); color:var(--danger);">
+            <i class="ri-bank-card-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="totalWithdrawn">0 F</div>
+            <div class="admin-stat-label">Total retiré</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(108,60,255,0.15); color:var(--primary);">
+            <i class="ri-git-branch-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="totalReferrals">0</div>
+            <div class="admin-stat-label">Total parrainages</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ligne 2 : Inscriptions + Retraits en attente -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+
+        <!-- Dernières inscriptions -->
+        <div class="admin-card">
+          <div class="admin-card-title">
+            <i class="ri-user-add-line"></i> Dernières inscriptions
+          </div>
+          <div id="recentUsers">
+            <div class="admin-empty">Chargement...</div>
+          </div>
+        </div>
+
+        <!-- Retraits en attente -->
+        <div class="admin-card">
+          <div class="admin-card-title">
+            <i class="ri-time-line"></i> Retraits en attente
+            <a href="withdrawals.html" style="font-size:12px; color:var(--primary); margin-left:auto;">Tout voir</a>
+          </div>
+          <div id="pendingWithdrawalsList">
+            <div class="admin-empty">Chargement...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dernières transactions -->
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-title">
+          <i class="ri-file-list-3-line"></i> Dernières transactions
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Utilisateur</th>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Portefeuille</th>
+                <th>Date</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="recentTx">
+              <tr><td colspan="6" class="admin-empty">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Stats par pays -->
+      <div class="admin-card">
+        <div class="admin-card-title">
+          <i class="ri-map-pin-line"></i> Utilisateurs par pays
+        </div>
+        <div id="countryStats" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    checkAdminAuth();
+
+    const TX_LABELS = {
+      deposit:           'Dépôt',
+      withdrawal:        'Retrait',
+      gain_fixed:        'Gain fixe',
+      gain_short:        'Gain court',
+      referral:          'Parrainage',
+      bonus_activation:  'Bonus activation',
+      bonus_first_short: 'Bonus 1er plan'
+    };
+
+    const COUNTRIES_LABEL = {
+      '+228': '🇹🇬 Togo',
+      '+229': '🇧🇯 Bénin',
+      '+225': '🇨🇮 Côte d\'Ivoire',
+      '+237': '🇨🇲 Cameroun'
+    };
+
+    document.getElementById('adminDate').textContent =
+      new Date().toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+
+    async function loadDashboard() {
+      // Stats utilisateurs
+      const { data: users } = await db.from('users').select('*');
+      const { data: activeU } = await db.from('users').select('id').eq('is_active', true);
+      document.getElementById('totalUsers').textContent  = users?.length || 0;
+      document.getElementById('activeUsers').textContent = activeU?.length || 0;
+
+      // Stats retraits
+      const { data: pendingW } = await db.from('withdrawals').select('*').eq('status', 'pending');
+      const { data: allW }     = await db.from('withdrawals').select('amount').eq('status', 'approved');
+      document.getElementById('pendingWithdrawals').textContent = pendingW?.length || 0;
+      const totalW = allW ? allW.reduce((s, w) => s + Number(w.amount), 0) : 0;
+      document.getElementById('totalWithdrawn').textContent = formatMoney(totalW);
+
+      // Stats dépôts
+      const { data: allD } = await db.from('deposits').select('amount').eq('status', 'confirmed');
+      const totalD = allD ? allD.reduce((s, d) => s + Number(d.amount), 0) : 0;
+      document.getElementById('totalDeposits').textContent = formatMoney(totalD);
+
+      // Parrainages
+      const { data: refs } = await db.from('users').select('id').not('referred_by', 'is', null);
+      document.getElementById('totalReferrals').textContent = refs?.length || 0;
+
+      // Dernières inscriptions
+      const { data: recentU } = await db
+        .from('users')
+        .select('full_name, phone, country_code, is_active, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const recentUsersEl = document.getElementById('recentUsers');
+      if (!recentU || recentU.length === 0) {
+        recentUsersEl.innerHTML = '<div class="admin-empty">Aucun utilisateur</div>';
+      } else {
+        recentUsersEl.innerHTML = recentU.map(u => `
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 0;
+            border-bottom:1px solid var(--border);">
+            <div style="width:36px; height:36px; border-radius:50%;
+              background:linear-gradient(135deg,var(--primary),var(--blue));
+              display:flex; align-items:center; justify-content:center;
+              font-weight:900; font-size:14px; flex-shrink:0;">
+              ${u.full_name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:13px; white-space:nowrap;
+                overflow:hidden; text-overflow:ellipsis;">${u.full_name}</div>
+              <div style="font-size:11px; color:var(--gray);">
+                ${u.country_code} ${u.phone}
+              </div>
+            </div>
+            <span class="badge ${u.is_active ? 'badge-success' : 'badge-warning'}" style="flex-shrink:0;">
+              ${u.is_active ? 'Actif' : 'Inactif'}
+            </span>
+          </div>`).join('');
+      }
+
+      // Retraits en attente
+      const pendingEl = document.getElementById('pendingWithdrawalsList');
+      if (!pendingW || pendingW.length === 0) {
+        pendingEl.innerHTML = '<div class="admin-empty">Aucun retrait en attente</div>';
+      } else {
+        pendingEl.innerHTML = pendingW.slice(0, 5).map(w => `
+          <div style="display:flex; align-items:center; justify-content:space-between;
+            padding:10px 0; border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-weight:700; font-size:14px;">${formatMoney(w.amount)}</div>
+              <div style="font-size:11px; color:var(--gray);">
+                ${w.country_code} ${w.mobile_number}
+              </div>
+            </div>
+            <a href="withdrawals.html" class="admin-btn admin-btn-sm admin-btn-warning">
+              Traiter
+            </a>
+          </div>`).join('');
+      }
+
+      // Dernières transactions
+      const { data: txs } = await db
+        .from('transactions')
+        .select('*, users(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const txBody = document.getElementById('recentTx');
+      if (!txs || txs.length === 0) {
+        txBody.innerHTML = '<tr><td colspan="6" class="admin-empty">Aucune transaction</td></tr>';
+      } else {
+        txBody.innerHTML = txs.map(tx => {
+          const date = new Date(tx.created_at).toLocaleDateString('fr-FR');
+          const statusCls = {
+            completed: 'badge-success',
+            pending:   'badge-warning',
+            rejected:  'badge-danger'
+          };
+          return `
+            <tr>
+              <td>${tx.users?.full_name || '-'}</td>
+              <td>${TX_LABELS[tx.type] || tx.type}</td>
+              <td style="font-weight:700; color:${tx.type === 'withdrawal' ? 'var(--danger)' : 'var(--success)'};">
+                ${tx.type === 'withdrawal' ? '-' : '+'}${formatMoney(tx.amount)}
+              </td>
+              <td>${tx.wallet === 'unique' ? '💰 Unique' : '💳 Retrait'}</td>
+              <td>${date}</td>
+              <td><span class="badge ${statusCls[tx.status] || 'badge-primary'}">${tx.status}</span></td>
+            </tr>`;
+        }).join('');
+      }
+
+      // Stats par pays
+      const countryEl = document.getElementById('countryStats');
+      const total = users?.length || 1;
+      const countryData = {};
+      users?.forEach(u => {
+        countryData[u.country_code] = (countryData[u.country_code] || 0) + 1;
+      });
+
+      countryEl.innerHTML = Object.entries(countryData).map(([code, count]) => {
+        const pct = Math.round((count / total) * 100);
+        return `
+          <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:13px; font-weight:600;">${COUNTRIES_LABEL[code] || code}</span>
+              <span style="font-size:13px; color:var(--gray);">${count} (${pct}%)</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Badge support
+      const { data: unreadSupport } = await db
+        .from('support_messages')
+        .select('id')
+        .eq('sender', 'user')
+        .eq('is_read', false);
+
+      if (unreadSupport && unreadSupport.length > 0) {
+        const badge = document.getElementById('supportCount');
+        badge.textContent = unreadSupport.length;
+        badge.style.display = 'inline-block';
+      }
+    }
+
+    loadDashboard();
+  </script>
+
 </body>
-
 </html>

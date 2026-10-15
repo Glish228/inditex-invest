@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Historique</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a href="profile.html" style="color:var(--gray); font-size:22px;">
+      <i class="ri-arrow-left-line"></i>
+    </a>
+    <div class="topbar-logo" style="font-size:18px;">INDI<span>TEX</span></div>
+    <div style="width:22px;"></div>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <div class="section-title">Historique des transactions</div>
+
+      <!-- Filtres -->
+      <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:16px;
+        scrollbar-width:none;" id="filterBar">
+        <button class="filter-btn active" onclick="setFilter('all', this)">Tout</button>
+        <button class="filter-btn" onclick="setFilter('gain_fixed', this)">Plan fixe</button>
+        <button class="filter-btn" onclick="setFilter('gain_short', this)">Plans courts</button>
+        <button class="filter-btn" onclick="setFilter('referral', this)">Parrainage</button>
+        <button class="filter-btn" onclick="setFilter('withdrawal', this)">Retraits</button>
+        <button class="filter-btn" onclick="setFilter('bonus_activation', this)">Bonus</button>
+      </div>
+
+      <!-- Stats résumé -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-value" id="totalIn">0 F</div>
+          <div class="stat-label">Total reçu</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalOut">0 F</div>
+          <div class="stat-label">Total retiré</div>
+        </div>
+      </div>
+
+      <!-- Liste transactions -->
+      <div id="txList">
+        <div class="empty-state">
+          <i class="ri-file-list-3-line"></i>
+          <p>Chargement...</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="nav-item">
+      <i class="ri-home-5-line"></i><span>Accueil</span>
+    </a>
+    <a href="products.html" class="nav-item">
+      <i class="ri-store-2-line"></i><span>Investir</span>
+    </a>
+    <a href="team.html" class="nav-item">
+      <i class="ri-group-line"></i><span>Équipe</span>
+    </a>
+    <a href="profile.html" class="nav-item active">
+      <i class="ri-user-3-line"></i><span>Moi</span>
+    </a>
+  </nav>
+
+  <style>
+    .filter-btn {
+      white-space: nowrap;
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--gray);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+    .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--white);
+    }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    let allTx     = [];
+    let activeFilter = 'all';
+
+    const TX_INFO = {
+      deposit:           { icon: '💳', label: 'Dépôt',                 positive: true  },
+      withdrawal:        { icon: '🏧', label: 'Retrait',               positive: false },
+      gain_fixed:        { icon: '📈', label: 'Gain plan fixe',        positive: true  },
+      gain_short:        { icon: '🚀', label: 'Gain plan court',       positive: true  },
+      referral:          { icon: '👥', label: 'Commission parrainage', positive: true  },
+      bonus_activation:  { icon: '🎁', label: 'Bonus activation',      positive: true  },
+      bonus_first_short: { icon: '🎉', label: 'Bonus premier plan',    positive: true  }
+    };
+
+    const WALLET_LABEL = {
+      unique:     '💰 Portefeuille Unique',
+      withdrawal: '💳 Portefeuille Retrait'
+    };
+
+    async function loadHistory() {
+      allTx = await getTransactions(user.id);
+
+      // Stats
+      const totalIn  = allTx.filter(t => t.type !== 'withdrawal')
+                            .reduce((s, t) => s + Number(t.amount), 0);
+      const totalOut = allTx.filter(t => t.type === 'withdrawal')
+                            .reduce((s, t) => s + Number(t.amount), 0);
+      document.getElementById('totalIn').textContent  = formatMoney(totalIn);
+      document.getElementById('totalOut').textContent = formatMoney(totalOut);
+
+      renderList();
+    }
+
+    function setFilter(type, btn) {
+      activeFilter = type;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    }
+
+    function renderList() {
+      const filtered = activeFilter === 'all'
+        ? allTx
+        : activeFilter === 'bonus_activation'
+          ? allTx.filter(t => t.type === 'bonus_activation' || t.type === 'bonus_first_short')
+          : allTx.filter(t => t.type === activeFilter);
+
+      const listEl = document.getElementById('txList');
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-file-list-3-line"></i>
+            <p>Aucune transaction dans cette catégorie</p>
+          </div>`;
+        return;
+      }
+
+      // Grouper par date
+      const grouped = {};
+      filtered.forEach(tx => {
+        const date = new Date(tx.created_at).toLocaleDateString('fr-FR', {
+          weekday: 'long', day: 'numeric', month: 'long'
+        });
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(tx);
+      });
+
+      let html = '';
+      Object.entries(grouped).forEach(([date, txs]) => {
+        html += `
+          <div style="font-size:12px; color:var(--gray); font-weight:600;
+            text-transform:capitalize; margin:16px 0 8px;">${date}</div>
+          <div class="card" style="padding:8px 16px;">`;
+        txs.forEach(tx => {
+          const info = TX_INFO[tx.type] || { icon: '💰', label: tx.type, positive: true };
+          const time = new Date(tx.created_at).toLocaleTimeString('fr-FR', {
+            hour: '2-digit', minute: '2-digit'
+          });
+          const statusMap = {
+            completed: { label: '', cls: '' },
+            pending:   { label: '· En attente', cls: 'color:var(--warning);' },
+            rejected:  { label: '· Rejeté',     cls: 'color:var(--danger);'  }
+          };
+          const st = statusMap[tx.status] || statusMap.completed;
+          html += `
+            <div class="tx-item">
+              <div class="tx-icon">${info.icon}</div>
+              <div class="tx-info">
+                <div class="tx-label">${info.label}</div>
+                <div class="tx-date">
+                  ${time}
+                  <span style="${st.cls}">${st.label}</span>
+                  · <span style="font-size:10px;">${WALLET_LABEL[tx.wallet] || tx.wallet}</span>
+                </div>
+                ${tx.note ? `<div style="font-size:11px; color:var(--gray); margin-top:2px;">${tx.note}</div>` : ''}
+              </div>
+              <div class="tx-amount ${info.positive ? 'positive' : 'negative'}">
+                ${info.positive ? '+' : '-'}${formatMoney(tx.amount)}
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+      });
+
+      listEl.innerHTML = html;
+    }
+
+    loadHistory();
+  </script>
+
+</body>
+</html>

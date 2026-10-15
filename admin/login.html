@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX Admin - Connexion</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body style="display:flex; align-items:center; justify-content:center;
+  min-height:100vh; background:var(--dark);">
+
+  <div style="width:100%; max-width:400px; padding:20px;">
+
+    <div style="text-align:center; margin-bottom:32px;">
+      <div class="brand-logo" style="font-size:32px;">INDITEX</div>
+      <div style="font-size:13px; color:var(--gray); margin-top:6px;">
+        Panel Administration
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="alert alert-danger" id="alertError"></div>
+
+      <div class="form-group">
+        <label class="form-label">Identifiant</label>
+        <input type="text" class="form-input" id="username" placeholder="admin">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input type="password" class="form-input" id="password" placeholder="••••••••">
+      </div>
+
+      <button class="btn btn-primary" id="loginBtn" onclick="handleAdminLogin()">
+        <i class="ri-shield-user-line"></i> Se connecter
+      </button>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script>
+    // Rediriger si déjà connecté
+    if (sessionStorage.getItem('inditex_admin')) {
+      window.location.href = 'index.html';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleAdminLogin();
+    });
+
+    async function handleAdminLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errEl    = document.getElementById('alertError');
+      errEl.classList.remove('show');
+
+      if (!username || !password) {
+        errEl.textContent = 'Veuillez remplir tous les champs.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+
+      const { data: admin, error } = await db
+        .from('admins')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .maybeSingle();
+
+      if (error || !admin) {
+        errEl.textContent = 'Identifiant ou mot de passe incorrect.';
+        errEl.classList.add('show');
+        btn.innerHTML = '<i class="ri-shield-user-line"></i> Se connecter';
+        btn.disabled  = false;
+        return;
+      }
+
+      sessionStorage.setItem('inditex_admin', JSON.stringify(admin));
+      window.location.href = 'index.html';
+    }
+  </script>
+
+</body>
+</html>

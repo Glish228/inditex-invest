@@ -1,14 +1,343 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX Admin - Retraits</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
 </head>
+<body class="admin-body">
 
-<body>
-  
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-item"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="users.html" class="sidebar-item"><i class="ri-group-line"></i> Utilisateurs</a>
+      <a href="withdrawals.html" class="sidebar-item active"><i class="ri-bank-card-line"></i> Retraits</a>
+      <a href="deposits.html" class="sidebar-item"><i class="ri-money-dollar-circle-line"></i> Dépôts</a>
+      <a href="support.html" class="sidebar-item">
+        <i class="ri-customer-service-2-line"></i> Support
+        <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
+      </a>
+      <a href="plans.html" class="sidebar-item"><i class="ri-store-2-line"></i> Plans</a>
+      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+        <i class="ri-logout-box-line"></i> Déconnexion
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button onclick="toggleSidebar()" class="menu-btn"><i class="ri-menu-line"></i></button>
+      <div style="font-size:16px; font-weight:700;">Gestion des Retraits</div>
+      <div style="font-size:13px; color:var(--gray);">
+        <span id="pendingCount" style="color:var(--warning); font-weight:700;"></span>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Stats retraits -->
+      <div class="admin-stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(245,158,11,0.15); color:var(--warning);">
+            <i class="ri-time-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statPending">0</div>
+            <div class="admin-stat-label">En attente</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(34,197,94,0.15); color:var(--success);">
+            <i class="ri-checkbox-circle-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statApproved">0</div>
+            <div class="admin-stat-label">Approuvés</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(239,68,68,0.15); color:var(--danger);">
+            <i class="ri-close-circle-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statRejected">0</div>
+            <div class="admin-stat-label">Rejetés</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="setFilter('pending', this)">
+          En attente <span id="badgePending"></span>
+        </button>
+        <button class="admin-tab" onclick="setFilter('approved', this)">Approuvés</button>
+        <button class="admin-tab" onclick="setFilter('rejected', this)">Rejetés</button>
+        <button class="admin-tab" onclick="setFilter('all', this)">Tous</button>
+      </div>
+
+      <!-- Table retraits -->
+      <div class="admin-card">
+        <div style="overflow-x:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Utilisateur</th>
+                <th>Montant</th>
+                <th>Frais</th>
+                <th>Net reçu</th>
+                <th>Mobile Money</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="withdrawalsTable">
+              <tr><td colspan="8" class="admin-empty">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL TRAITEMENT RETRAIT -->
+  <div class="admin-modal-overlay" id="withdrawModal">
+    <div class="admin-modal">
+      <div class="admin-modal-title">Traiter le retrait</div>
+
+      <div style="background:var(--dark3); border-radius:var(--radius-sm);
+        padding:16px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Utilisateur</div>
+            <div style="font-weight:700;" id="wUserName">-</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Montant demandé</div>
+            <div style="font-weight:700; font-size:18px;" id="wAmount">-</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Frais (10%)</div>
+            <div style="font-weight:700; color:var(--danger);" id="wFee">-</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Net à envoyer</div>
+            <div style="font-weight:900; font-size:20px; color:var(--success);" id="wNet">-</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Numéro Mobile Money</div>
+            <div style="font-weight:700; font-size:16px;" id="wPhone">-</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--gray);">Date demande</div>
+            <div style="font-weight:600;" id="wDate">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note admin (optionnel)</label>
+        <textarea class="form-input" id="adminNote" rows="2"
+          placeholder="Ex: Envoyé via Wave à 14h32..."
+          style="resize:none;"></textarea>
+      </div>
+
+      <div class="alert alert-danger"  id="wModalAlert"></div>
+      <div class="alert alert-success" id="wModalSuccess"></div>
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="admin-btn admin-btn-outline" onclick="closeWithdrawModal()" style="flex:1;">
+          Annuler
+        </button>
+        <button class="admin-btn admin-btn-danger" onclick="processWithdrawal('rejected')" style="flex:1;">
+          <i class="ri-close-line"></i> Rejeter
+        </button>
+        <button class="admin-btn admin-btn-success" onclick="processWithdrawal('approved')" style="flex:2;">
+          <i class="ri-check-line"></i> Approuver
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    checkAdminAuth();
+
+    let allWithdrawals = [];
+    let allUsers       = [];
+    let selectedW      = null;
+    let currentFilter  = 'pending';
+
+    const COUNTRIES_LABEL = {
+      '+228': '🇹🇬', '+229': '🇧🇯', '+225': '🇨🇮', '+237': '🇨🇲'
+    };
+
+    async function loadWithdrawals() {
+      const { data: withdrawals } = await db
+        .from('withdrawals')
+        .select('*, users(full_name, phone, country_code)')
+        .order('created_at', { ascending: false });
+
+      const { data: users } = await db.from('users').select('id, full_name');
+      allUsers       = users || [];
+      allWithdrawals = withdrawals || [];
+
+      // Stats
+      const pending  = allWithdrawals.filter(w => w.status === 'pending').length;
+      const approved = allWithdrawals.filter(w => w.status === 'approved').length;
+      const rejected = allWithdrawals.filter(w => w.status === 'rejected').length;
+
+      document.getElementById('statPending').textContent  = pending;
+      document.getElementById('statApproved').textContent = approved;
+      document.getElementById('statRejected').textContent = rejected;
+      document.getElementById('pendingCount').textContent  =
+        pending > 0 ? `${pending} en attente` : '';
+      document.getElementById('badgePending').textContent =
+        pending > 0 ? `(${pending})` : '';
+
+      renderWithdrawals();
+    }
+
+    function setFilter(status, btn) {
+      currentFilter = status;
+      document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderWithdrawals();
+    }
+
+    function renderWithdrawals() {
+      const filtered = currentFilter === 'all'
+        ? allWithdrawals
+        : allWithdrawals.filter(w => w.status === currentFilter);
+
+      const tbody = document.getElementById('withdrawalsTable');
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="admin-empty">
+          Aucun retrait ${currentFilter === 'all' ? '' : currentFilter}</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(w => {
+        const statusMap = {
+          pending:  { cls: 'badge-warning', label: 'En attente' },
+          approved: { cls: 'badge-success', label: 'Approuvé'   },
+          rejected: { cls: 'badge-danger',  label: 'Rejeté'     }
+        };
+        const s    = statusMap[w.status];
+        const flag = COUNTRIES_LABEL[w.country_code] || '';
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:700;">${w.users?.full_name || '-'}</div>
+              <div style="font-size:11px; color:var(--gray);">
+                ${w.users?.country_code} ${w.users?.phone}
+              </div>
+            </td>
+            <td style="font-weight:700;">${formatMoney(w.amount)}</td>
+            <td style="color:var(--danger);">${formatMoney(w.fee)}</td>
+            <td style="font-weight:900; color:var(--success);">${formatMoney(w.amount_net)}</td>
+            <td>
+              <div style="font-weight:700;">${flag} ${w.country_code} ${w.mobile_number}</div>
+            </td>
+            <td style="font-size:12px; color:var(--gray);">${formatDateTime(w.created_at)}</td>
+            <td><span class="badge ${s.cls}">${s.label}</span></td>
+            <td>
+              ${w.status === 'pending' ? `
+                <button class="admin-btn admin-btn-primary admin-btn-sm"
+                  onclick="openWithdrawModal('${w.id}')">
+                  <i class="ri-settings-line"></i> Traiter
+                </button>` : `
+                <span style="font-size:12px; color:var(--gray);">
+                  ${w.processed_at ? formatDate(w.processed_at) : '-'}
+                </span>`}
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function openWithdrawModal(withdrawalId) {
+      selectedW = allWithdrawals.find(w => w.id === withdrawalId);
+      if (!selectedW) return;
+
+      document.getElementById('wUserName').textContent = selectedW.users?.full_name || '-';
+      document.getElementById('wAmount').textContent   = formatMoney(selectedW.amount);
+      document.getElementById('wFee').textContent      = formatMoney(selectedW.fee);
+      document.getElementById('wNet').textContent      = formatMoney(selectedW.amount_net);
+      document.getElementById('wPhone').textContent    =
+        `${COUNTRIES_LABEL[selectedW.country_code] || ''} ${selectedW.country_code} ${selectedW.mobile_number}`;
+      document.getElementById('wDate').textContent     = formatDateTime(selectedW.created_at);
+      document.getElementById('adminNote').value       = '';
+      document.getElementById('wModalAlert').classList.remove('show');
+      document.getElementById('wModalSuccess').classList.remove('show');
+      document.getElementById('withdrawModal').classList.add('show');
+    }
+
+    function closeWithdrawModal() {
+      document.getElementById('withdrawModal').classList.remove('show');
+      selectedW = null;
+    }
+
+    async function processWithdrawal(action) {
+      if (!selectedW) return;
+      const note = document.getElementById('adminNote').value.trim();
+
+      const { error } = await db
+        .from('withdrawals')
+        .update({
+          status:       action,
+          admin_note:   note || null,
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', selectedW.id);
+
+      if (error) {
+        showAdminAlert('wModalAlert', 'Erreur lors du traitement.');
+        return;
+      }
+
+      // Si rejeté → rembourser le solde
+      if (action === 'rejected') {
+        await updateWallet(selectedW.user_id, 'withdrawal_balance', selectedW.amount);
+        await logTransaction(
+          selectedW.user_id, 'withdrawal',
+          selectedW.amount, 'withdrawal',
+          'rejected', 'Retrait rejeté — remboursé'
+        );
+      }
+
+      showAdminAlert('wModalSuccess',
+        action === 'approved' ? 'Retrait approuvé avec succès !' : 'Retrait rejeté et remboursé.',
+        'success'
+      );
+
+      // Mettre à jour localement
+      const idx = allWithdrawals.findIndex(w => w.id === selectedW.id);
+      if (idx !== -1) allWithdrawals[idx].status = action;
+
+      setTimeout(() => {
+        closeWithdrawModal();
+        loadWithdrawals();
+      }, 1500);
+    }
+
+    document.getElementById('withdrawModal').addEventListener('click', function(e) {
+      if (e.target === this) closeWithdrawModal();
+    });
+
+    loadWithdrawals();
+  </script>
+
 </body>
-
 </html>

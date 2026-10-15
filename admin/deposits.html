@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX Admin - Dépôts</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body class="admin-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-item"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="users.html" class="sidebar-item"><i class="ri-group-line"></i> Utilisateurs</a>
+      <a href="withdrawals.html" class="sidebar-item"><i class="ri-bank-card-line"></i> Retraits</a>
+      <a href="deposits.html" class="sidebar-item active"><i class="ri-money-dollar-circle-line"></i> Dépôts</a>
+      <a href="support.html" class="sidebar-item">
+        <i class="ri-customer-service-2-line"></i> Support
+        <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
+      </a>
+      <a href="plans.html" class="sidebar-item"><i class="ri-store-2-line"></i> Plans</a>
+      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+        <i class="ri-logout-box-line"></i> Déconnexion
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button onclick="toggleSidebar()" class="menu-btn"><i class="ri-menu-line"></i></button>
+      <div style="font-size:16px; font-weight:700;">Dépôts Flinpay</div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Stats -->
+      <div class="admin-stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(34,197,94,0.15); color:var(--success);">
+            <i class="ri-checkbox-circle-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statConfirmed">0</div>
+            <div class="admin-stat-label">Confirmés</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(245,158,11,0.15); color:var(--warning);">
+            <i class="ri-time-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statPending">0</div>
+            <div class="admin-stat-label">En attente</div>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon" style="background:rgba(108,60,255,0.15); color:var(--primary);">
+            <i class="ri-money-dollar-circle-line"></i>
+          </div>
+          <div>
+            <div class="admin-stat-value" id="statTotal">0 F</div>
+            <div class="admin-stat-label">Total confirmé</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="setFilter('all', this)">Tous</button>
+        <button class="admin-tab" onclick="setFilter('confirmed', this)">Confirmés</button>
+        <button class="admin-tab" onclick="setFilter('pending', this)">En attente</button>
+        <button class="admin-tab" onclick="setFilter('failed', this)">Échoués</button>
+      </div>
+
+      <!-- Table -->
+      <div class="admin-card">
+        <div style="overflow-x:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Utilisateur</th>
+                <th>Plan</th>
+                <th>Montant</th>
+                <th>Référence Flinpay</th>
+                <th>Date</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="depositsTable">
+              <tr><td colspan="6" class="admin-empty">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    checkAdminAuth();
+
+    let allDeposits   = [];
+    let currentFilter = 'all';
+
+    async function loadDeposits() {
+      const { data: deposits } = await db
+        .from('deposits')
+        .select('*, users(full_name, phone, country_code), plans(name, type)')
+        .order('created_at', { ascending: false });
+
+      allDeposits = deposits || [];
+
+      const confirmed = allDeposits.filter(d => d.status === 'confirmed');
+      const pending   = allDeposits.filter(d => d.status === 'pending');
+      const total     = confirmed.reduce((s, d) => s + Number(d.amount), 0);
+
+      document.getElementById('statConfirmed').textContent = confirmed.length;
+      document.getElementById('statPending').textContent   = pending.length;
+      document.getElementById('statTotal').textContent     = formatMoney(total);
+
+      renderDeposits();
+    }
+
+    function setFilter(status, btn) {
+      currentFilter = status;
+      document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderDeposits();
+    }
+
+    function renderDeposits() {
+      const filtered = currentFilter === 'all'
+        ? allDeposits
+        : allDeposits.filter(d => d.status === currentFilter);
+
+      const tbody = document.getElementById('depositsTable');
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-empty">Aucun dépôt</td></tr>`;
+        return;
+      }
+
+      const statusMap = {
+        confirmed: { cls: 'badge-success', label: 'Confirmé'   },
+        pending:   { cls: 'badge-warning', label: 'En attente' },
+        failed:    { cls: 'badge-danger',  label: 'Échoué'     }
+      };
+
+      tbody.innerHTML = filtered.map(d => {
+        const s = statusMap[d.status] || statusMap.pending;
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:700;">${d.users?.full_name || '-'}</div>
+              <div style="font-size:11px; color:var(--gray);">
+                ${d.users?.country_code || ''} ${d.users?.phone || ''}
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600;">${d.plans?.name || '-'}</div>
+              <span class="badge ${d.plans?.type === 'fixed' ? 'badge-primary' : 'badge-warning'}"
+                style="font-size:10px;">
+                ${d.plans?.type === 'fixed' ? 'Fixe' : 'Court'}
+              </span>
+            </td>
+            <td style="font-weight:900; color:var(--success);">${formatMoney(d.amount)}</td>
+            <td style="font-size:11px; color:var(--gray); font-family:monospace;">
+              ${d.flinpay_ref || '-'}
+            </td>
+            <td style="font-size:12px; color:var(--gray);">${formatDateTime(d.created_at)}</td>
+            <td><span class="badge ${s.cls}">${s.label}</span></td>
+          </tr>`;
+      }).join('');
+    }
+
+    loadDeposits();
+  </script>
+
+</body>
+</html>
