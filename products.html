@@ -174,13 +174,9 @@
         }
       }
 
-      // Plans courts
+      // Plans courts : toujours visibles, achat bloqué si compte non activé
       const shortContainer = document.getElementById('shortPlansContainer');
-      if (!userHasFixed) {
-        shortContainer.innerHTML = '';
-        return;
-      }
-      document.querySelector('.alert-info').style.display = 'none';
+      document.querySelector('.alert-info').style.display = userHasFixed ? 'none' : '';
       shortContainer.innerHTML = shortPlans.map(p => buildShortCard(p)).join('');
     }
 
@@ -210,8 +206,9 @@
     function buildShortCard(plan) {
       const gainAmount = plan.price * (plan.total_gain_percent / 100) + plan.price;
       const isFirst    = userShortCount === 0;
+      const locked     = !userHasFixed;
       return `
-        <div class="plan-card" onclick="openModal('${plan.id}')">
+        <div class="plan-card" ${locked ? 'style="opacity:0.6; filter:grayscale(0.6); cursor:not-allowed;"' : `onclick="openModal('${plan.id}')"`}>
           <div class="plan-card-bg" style="background-image:url('${plan.image}')"></div>
           <div class="plan-card-overlay"></div>
           <div class="plan-card-content">
@@ -222,11 +219,13 @@
               <div class="plan-info">
                 <div class="plan-info-item">📈 Gain <strong>+${plan.total_gain_percent}%</strong></div>
                 <div class="plan-info-item">💰 Total <strong>${formatMoney(gainAmount)}</strong></div>
-                ${isFirst ? '<div class="plan-info-item">🎉 Bonus <strong>500 F</strong></div>' : ''}
+                ${isFirst && !locked ? '<div class="plan-info-item">🎉 Bonus <strong>500 F</strong></div>' : ''}
               </div>
             </div>
-            <button class="plan-btn">
-              <i class="ri-shopping-cart-line"></i> Investir
+            <button class="plan-btn" ${locked ? 'disabled' : ''}>
+              ${locked
+                ? '<i class="ri-lock-line"></i> Activez votre compte'
+                : '<i class="ri-shopping-cart-line"></i> Investir'}
             </button>
           </div>
         </div>`;
@@ -238,6 +237,14 @@
       if (!allPlans.length) allPlans = await getPlans();
       selectedPlan = allPlans.find(p => p.id === planId);
       if (!selectedPlan) return;
+
+      // Sécurité : impossible d'acheter un plan court sans compte activé
+      if (selectedPlan.type === 'short' && !userHasFixed) {
+        document.getElementById('alertError').textContent = 'Activez d\'abord votre compte avec le plan fixe.';
+        document.getElementById('alertError').classList.add('show');
+        selectedPlan = null;
+        return;
+      }
 
       const isFixed    = selectedPlan.type === 'fixed';
       const gainAmount = isFixed
