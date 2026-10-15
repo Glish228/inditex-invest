@@ -24,7 +24,7 @@
         </p>
       </div>
 
-      <!-- Alert -->
+      <!-- Alerts -->
       <div class="alert alert-danger" id="alertError"></div>
       <div class="alert alert-success" id="alertSuccess"></div>
 
@@ -46,7 +46,7 @@
         <div class="form-group">
           <label class="form-label">Numéro de téléphone</label>
           <input type="tel" class="form-input" id="phone"
-            placeholder="Ex: 90462515" maxlength="12" inputmode="numeric">
+            placeholder="Ex: 90000015" maxlength="12" inputmode="numeric">
         </div>
 
         <!-- Nom complet -->
@@ -97,9 +97,12 @@
       </div>
 
       <!-- Lien connexion -->
-      <p style="text-align:center; margin-top:20px; font-size:14px; color:rgba(255,255,255,0.6);">
+      <p style="text-align:center; margin-top:20px; font-size:14px;
+        color:rgba(255,255,255,0.6);">
         Déjà un compte ?
-        <a href="login.html" style="color:var(--primary); font-weight:700;">Se connecter</a>
+        <a href="login.html" style="color:var(--primary); font-weight:700;">
+          Se connecter
+        </a>
       </p>
 
     </div>
@@ -107,17 +110,16 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
   <script src="supabase.js"></script>
-  <script src="app.js"></script>
   <script>
     // Rediriger si déjà connecté
     if (getSession()) window.location.href = 'dashboard.html';
 
     // Remplir code parrainage auto depuis l'URL
     const params = new URLSearchParams(window.location.search);
-    const refCode = params.get('ref');
-    if (refCode) {
+    const refParam = params.get('ref');
+    if (refParam) {
       const input = document.getElementById('referralCode');
-      input.value = refCode.toUpperCase();
+      input.value = refParam.toUpperCase();
       input.readOnly = true;
       input.style.background = 'rgba(108,60,255,0.1)';
       input.style.borderColor = 'var(--primary)';
@@ -144,19 +146,26 @@
       document.getElementById('alertError').classList.remove('show');
     }
 
-    // Forcer chiffres pour mots de passe
-    ['password','passwordConfirm'].forEach(id => {
-      document.getElementById(id).addEventListener('input', function() {
+    function hideAlerts() {
+      document.getElementById('alertError').classList.remove('show');
+      document.getElementById('alertSuccess').classList.remove('show');
+    }
+
+    // Forcer chiffres uniquement pour mots de passe
+    ['password', 'passwordConfirm'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '');
       });
     });
 
     // Forcer majuscules pour code parrainage
-    document.getElementById('referralCode').addEventListener('input', function() {
+    document.getElementById('referralCode').addEventListener('input', function () {
       this.value = this.value.toUpperCase();
     });
 
     async function handleRegister() {
+      hideAlerts();
+
       const country  = document.getElementById('countryCode').value;
       const phone    = document.getElementById('phone').value.trim();
       const fullName = document.getElementById('fullName').value.trim();
@@ -182,7 +191,11 @@
         return;
       }
 
-      // Vérifier que le code parrainage existe si fourni
+      const btn = document.getElementById('registerBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+
+      // Vérifier code parrainage si fourni
       if (refCode) {
         const { data: refUser } = await db
           .from('users')
@@ -191,26 +204,24 @@
           .maybeSingle();
         if (!refUser) {
           showError('Code de parrainage invalide.');
+          btn.innerHTML = '<i class="ri-user-add-line"></i> Créer mon compte';
+          btn.disabled  = false;
           return;
         }
       }
 
-      const btn = document.getElementById('registerBtn');
-      btn.innerHTML = '<span class="loader"></span>';
-      btn.disabled = true;
-
       const { user, error } = await registerUser({
         phone,
         country_code: country,
-        full_name: fullName,
-        password: pass,
-        referred_by: refCode || null
+        full_name:    fullName,
+        password:     pass,
+        referred_by:  refCode || null
       });
 
       if (error) {
         showError(error);
         btn.innerHTML = '<i class="ri-user-add-line"></i> Créer mon compte';
-        btn.disabled = false;
+        btn.disabled  = false;
         return;
       }
 
