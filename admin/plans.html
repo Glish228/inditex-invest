@@ -1,14 +1,350 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX Admin - Plans</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
 </head>
+<body class="admin-body">
 
-<body>
-  
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-item"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="users.html" class="sidebar-item"><i class="ri-group-line"></i> Utilisateurs</a>
+      <a href="withdrawals.html" class="sidebar-item"><i class="ri-bank-card-line"></i> Retraits</a>
+      <a href="deposits.html" class="sidebar-item"><i class="ri-money-dollar-circle-line"></i> Dépôts</a>
+      <a href="support.html" class="sidebar-item">
+        <i class="ri-customer-service-2-line"></i> Support
+        <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
+      </a>
+      <a href="plans.html" class="sidebar-item active"><i class="ri-store-2-line"></i> Plans</a>
+      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+        <i class="ri-logout-box-line"></i> Déconnexion
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <button onclick="toggleSidebar()" class="menu-btn"><i class="ri-menu-line"></i></button>
+      <div style="font-size:16px; font-weight:700;">Gestion des Plans</div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Plan Fixe -->
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div class="admin-card-title">
+          <i class="ri-star-line"></i> Plan Fixe
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Prix</th>
+                <th>Durée</th>
+                <th>Gain/jour</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fixedPlanTable">
+              <tr><td colspan="6" class="admin-empty">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Plans Courts -->
+      <div class="admin-card">
+        <div class="admin-card-title">
+          <i class="ri-rocket-line"></i> Plans à Courte Durée
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Prix</th>
+                <th>Durée</th>
+                <th>Gain %</th>
+                <th>Gain total (exemple)</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="shortPlansTable">
+              <tr><td colspan="7" class="admin-empty">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL MODIFIER PLAN -->
+  <div class="admin-modal-overlay" id="planModal">
+    <div class="admin-modal">
+      <div class="admin-modal-title" id="planModalTitle">Modifier le plan</div>
+
+      <div class="alert alert-danger"  id="planAlert"></div>
+      <div class="alert alert-success" id="planSuccess"></div>
+
+      <div id="planFormFixed" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Nom du plan</label>
+          <input type="text" class="form-input" id="planName" placeholder="Plan Fixe">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Prix (F)</label>
+            <input type="number" class="form-input" id="planPrice" placeholder="2000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Durée (jours)</label>
+            <input type="number" class="form-input" id="planDuration" placeholder="180">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gain journalier (F)</label>
+          <input type="number" class="form-input" id="planDailyGain" placeholder="300">
+        </div>
+      </div>
+
+      <div id="planFormShort" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Nom du plan</label>
+          <input type="text" class="form-input" id="planNameShort" placeholder="Plan 2 Jours">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Prix (F)</label>
+            <input type="number" class="form-input" id="planPriceShort" placeholder="3000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Durée (jours)</label>
+            <input type="number" class="form-input" id="planDurationShort" placeholder="2">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pourcentage de gain (%)</label>
+          <input type="number" class="form-input" id="planGainPct" placeholder="50">
+        </div>
+        <div style="background:var(--dark3); border-radius:var(--radius-sm);
+          padding:12px; margin-bottom:16px;">
+          <div style="font-size:12px; color:var(--gray); margin-bottom:4px;">
+            Gain total estimé (prix + gain%)
+          </div>
+          <div style="font-weight:700; color:var(--success);" id="gainPreview">-</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="admin-btn admin-btn-outline" onclick="closePlanModal()" style="flex:1;">
+          Annuler
+        </button>
+        <button class="admin-btn admin-btn-primary" onclick="savePlan()" style="flex:2;">
+          <i class="ri-save-line"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/supabase.umd.min.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="../app.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    checkAdminAuth();
+
+    let allPlans     = [];
+    let selectedPlan = null;
+
+    async function loadPlans() {
+      const plans = await getPlans();
+      allPlans    = plans;
+
+      const fixedPlan  = plans.filter(p => p.type === 'fixed');
+      const shortPlans = plans.filter(p => p.type === 'short');
+
+      // Plan fixe
+      const fixedTbody = document.getElementById('fixedPlanTable');
+      if (!fixedPlan.length) {
+        fixedTbody.innerHTML = '<tr><td colspan="6" class="admin-empty">Aucun plan fixe</td></tr>';
+      } else {
+        fixedTbody.innerHTML = fixedPlan.map(p => `
+          <tr>
+            <td style="font-weight:700;">${p.name}</td>
+            <td style="font-weight:700; color:var(--primary);">${formatMoney(p.price)}</td>
+            <td>${p.duration_days} jours</td>
+            <td style="color:var(--success); font-weight:700;">${formatMoney(p.daily_gain)}/jour</td>
+            <td>
+              <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">
+                ${p.is_active ? 'Actif' : 'Inactif'}
+              </span>
+            </td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="admin-btn admin-btn-primary admin-btn-sm"
+                onclick="openPlanModal('${p.id}')">
+                <i class="ri-edit-line"></i> Modifier
+              </button>
+              <button class="admin-btn admin-btn-sm ${p.is_active ? 'admin-btn-danger' : 'admin-btn-success'}"
+                onclick="togglePlan('${p.id}', ${p.is_active})">
+                ${p.is_active ? 'Désactiver' : 'Activer'}
+              </button>
+            </td>
+          </tr>`).join('');
+      }
+
+      // Plans courts
+      const shortTbody = document.getElementById('shortPlansTable');
+      if (!shortPlans.length) {
+        shortTbody.innerHTML = '<tr><td colspan="7" class="admin-empty">Aucun plan court</td></tr>';
+      } else {
+        shortTbody.innerHTML = shortPlans.map(p => {
+          const gainEx = p.price * (p.total_gain_percent / 100) + p.price;
+          return `
+            <tr>
+              <td style="font-weight:700;">${p.name}</td>
+              <td style="font-weight:700; color:var(--primary);">${formatMoney(p.price)}</td>
+              <td>${p.duration_days} jours</td>
+              <td style="color:var(--warning); font-weight:700;">+${p.total_gain_percent}%</td>
+              <td style="color:var(--success); font-weight:700;">${formatMoney(gainEx)}</td>
+              <td>
+                <span class="badge ${p.is_active ? 'badge-success' : 'badge-danger'}">
+                  ${p.is_active ? 'Actif' : 'Inactif'}
+                </span>
+              </td>
+              <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="admin-btn admin-btn-primary admin-btn-sm"
+                  onclick="openPlanModal('${p.id}')">
+                  <i class="ri-edit-line"></i> Modifier
+                </button>
+                <button class="admin-btn admin-btn-sm ${p.is_active ? 'admin-btn-danger' : 'admin-btn-success'}"
+                  onclick="togglePlan('${p.id}', ${p.is_active})">
+                  ${p.is_active ? 'Désactiver' : 'Activer'}
+                </button>
+              </td>
+            </tr>`;
+        }).join('');
+      }
+    }
+
+    function openPlanModal(planId) {
+      selectedPlan = allPlans.find(p => p.id === planId);
+      if (!selectedPlan) return;
+
+      document.getElementById('planAlert').classList.remove('show');
+      document.getElementById('planSuccess').classList.remove('show');
+
+      if (selectedPlan.type === 'fixed') {
+        document.getElementById('planFormFixed').style.display = 'block';
+        document.getElementById('planFormShort').style.display = 'none';
+        document.getElementById('planModalTitle').textContent  = 'Modifier le Plan Fixe';
+        document.getElementById('planName').value     = selectedPlan.name;
+        document.getElementById('planPrice').value    = selectedPlan.price;
+        document.getElementById('planDuration').value = selectedPlan.duration_days;
+        document.getElementById('planDailyGain').value = selectedPlan.daily_gain;
+      } else {
+        document.getElementById('planFormFixed').style.display = 'none';
+        document.getElementById('planFormShort').style.display = 'block';
+        document.getElementById('planModalTitle').textContent  = 'Modifier ' + selectedPlan.name;
+        document.getElementById('planNameShort').value     = selectedPlan.name;
+        document.getElementById('planPriceShort').value    = selectedPlan.price;
+        document.getElementById('planDurationShort').value = selectedPlan.duration_days;
+        document.getElementById('planGainPct').value       = selectedPlan.total_gain_percent;
+        updateGainPreview();
+      }
+
+      document.getElementById('planModal').classList.add('show');
+    }
+
+    function updateGainPreview() {
+      const price  = parseFloat(document.getElementById('planPriceShort').value) || 0;
+      const pct    = parseFloat(document.getElementById('planGainPct').value) || 0;
+      const total  = price + (price * pct / 100);
+      document.getElementById('gainPreview').textContent = formatMoney(total);
+    }
+
+    document.getElementById('planPriceShort')?.addEventListener('input', updateGainPreview);
+    document.getElementById('planGainPct')?.addEventListener('input', updateGainPreview);
+
+    function closePlanModal() {
+      document.getElementById('planModal').classList.remove('show');
+      selectedPlan = null;
+    }
+
+    async function savePlan() {
+      if (!selectedPlan) return;
+
+      let updateData = {};
+
+      if (selectedPlan.type === 'fixed') {
+        const name      = document.getElementById('planName').value.trim();
+        const price     = parseFloat(document.getElementById('planPrice').value);
+        const duration  = parseInt(document.getElementById('planDuration').value);
+        const dailyGain = parseFloat(document.getElementById('planDailyGain').value);
+
+        if (!name || isNaN(price) || isNaN(duration) || isNaN(dailyGain)) {
+          showAdminAlert('planAlert', 'Veuillez remplir tous les champs.');
+          return;
+        }
+        updateData = { name, price, duration_days: duration, daily_gain: dailyGain };
+
+      } else {
+        const name     = document.getElementById('planNameShort').value.trim();
+        const price    = parseFloat(document.getElementById('planPriceShort').value);
+        const duration = parseInt(document.getElementById('planDurationShort').value);
+        const gainPct  = parseFloat(document.getElementById('planGainPct').value);
+
+        if (!name || isNaN(price) || isNaN(duration) || isNaN(gainPct)) {
+          showAdminAlert('planAlert', 'Veuillez remplir tous les champs.');
+          return;
+        }
+        updateData = { name, price, duration_days: duration, total_gain_percent: gainPct };
+      }
+
+      const { error } = await db
+        .from('plans')
+        .update(updateData)
+        .eq('id', selectedPlan.id);
+
+      if (error) {
+        showAdminAlert('planAlert', 'Erreur lors de la modification.');
+        return;
+      }
+
+      showAdminAlert('planSuccess', 'Plan modifié avec succès !', 'success');
+      setTimeout(() => {
+        closePlanModal();
+        loadPlans();
+      }, 1500);
+    }
+
+    async function togglePlan(planId, isActive) {
+      const { error } = await db
+        .from('plans')
+        .update({ is_active: !isActive })
+        .eq('id', planId);
+
+      if (!error) loadPlans();
+    }
+
+    document.getElementById('planModal').addEventListener('click', function(e) {
+      if (e.target === this) closePlanModal();
+    });
+
+    loadPlans();
+  </script>
+
 </body>
-
 </html>

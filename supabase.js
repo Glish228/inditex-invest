@@ -1,8 +1,7 @@
 const SUPABASE_URL = 'https://oxwvofgenucbebcbiztc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94d3ZvZmdlbnVjYmViY2JpenRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDQ1MDEsImV4cCI6MjEwNzU4MDUwMX0.SoP6W2GWr9Oir1TamKmqskFzeGNFPAI2gWrIcJtnvmY';
 
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── AUTH ────────────────────────────────────────────────
 async function registerUser(data) {
