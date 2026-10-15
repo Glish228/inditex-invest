@@ -5,27 +5,51 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── AUTH ────────────────────────────────────────────────
 async function registerUser(data) {
-  const code = generateCode();
-  const { data: existing } = await db
+  // Générer un code unique garanti
+  let code = generateCode();
+  let attempts = 0;
+  while (attempts < 10) {
+    const { data: existing } = await db
+      .from('users')
+      .select('id')
+      .eq('referral_code', code)
+      .maybeSingle();
+    if (!existing) break;
+    code = generateCode();
+    attempts++;
+  }
+  
+  // Vérifier si numéro déjà utilisé
+  const { data: existingPhone } = await db
     .from('users')
     .select('id')
     .eq('phone', data.phone)
     .eq('country_code', data.country_code)
     .maybeSingle();
-  if (existing) return { error: 'Ce numéro est déjà enregistré.' };
-
-  const { data: user, error } = await db.from('users').insert({
-    phone: data.phone,
-    country_code: data.country_code,
-    full_name: data.full_name,
-    password: data.password,
-    referral_code: code,
-    referred_by: data.referred_by || null
-  }).select().single();
-
-  if (error) return { error: error.message };
-
-  await db.from('wallets').insert({ user_id: user.id });
+  
+  if (existingPhone) return { error: 'Ce numéro est déjà enregistré.' };
+  
+  const { data: user, error } = await db
+    .from('users')
+    .insert({
+      phone: data.phone,
+      country_code: data.country_code,
+      full_name: data.full_name,
+      password: data.password,
+      referral_code: code,
+      referred_by: data.referred_by || null
+    })
+    .select()
+    .single();
+  
+  if (error) return { error: 'Erreur inscription : ' + error.message };
+  
+  const { error: walletError } = await db
+    .from('wallets')
+    .insert({ user_id: user.id });
+  
+  if (walletError) return { error: 'Erreur création portefeuille : ' + walletError.message };
+  
   return { user };
 }
 
