@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Déposer</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+    <a href="dashboard.html" style="color:var(--gray); font-size:22px;">
+      <i class="ri-arrow-left-line"></i>
+    </a>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <!-- Solde dépôt actuel -->
+      <div class="wallet-card" style="margin-bottom:24px;">
+        <div class="wallet-label">💳 Portefeuille Dépôt</div>
+        <div class="wallet-amount" id="depositBalance">0 F</div>
+        <div class="wallet-sub">Solde actuel</div>
+      </div>
+
+      <!-- Info -->
+      <div class="alert alert-info show" style="margin-bottom:24px;">
+        <i class="ri-information-line"></i>
+        Vous serez redirigé vers la page de paiement sécurisée BKApay.
+        Après paiement, votre portefeuille de dépôt sera crédité automatiquement.
+      </div>
+
+      <!-- Montants rapides -->
+      <div class="section-title">Montant à déposer</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
+        <button class="quick-amount" onclick="setAmount(2000)">2 000 F</button>
+        <button class="quick-amount" onclick="setAmount(5000)">5 000 F</button>
+        <button class="quick-amount" onclick="setAmount(10000)">10 000 F</button>
+        <button class="quick-amount" onclick="setAmount(20000)">20 000 F</button>
+        <button class="quick-amount" onclick="setAmount(50000)">50 000 F</button>
+        <button class="quick-amount" onclick="setAmount(100000)">100 000 F</button>
+      </div>
+
+      <!-- Saisie libre -->
+      <div class="form-group">
+        <label class="form-label">Ou saisissez un montant</label>
+        <input type="number" class="form-input" id="amountInput"
+          placeholder="Ex : 15000" inputmode="numeric" min="200"
+          oninput="onAmountInput()">
+        <div style="font-size:11px; color:var(--gray); margin-top:6px;">
+          Montant minimum : 200 F
+        </div>
+      </div>
+
+      <!-- Récap -->
+      <div id="recap" style="display:none; background:var(--dark2);
+        border:1px solid var(--border); border-radius:var(--radius);
+        padding:16px; margin-bottom:20px;">
+        <div class="d-flex align-center justify-between mb-8">
+          <span style="color:var(--gray); font-size:13px;">Montant à payer</span>
+          <span style="font-weight:800; color:var(--primary); font-size:16px;" id="recapAmount">-</span>
+        </div>
+        <div class="d-flex align-center justify-between">
+          <span style="color:var(--gray); font-size:13px;">Crédité sur</span>
+          <span style="font-weight:700; font-size:13px;">💳 Portefeuille Dépôt</span>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" id="alertError"></div>
+
+      <button class="btn btn-primary" id="payBtn"
+        onclick="startPayment()"
+        style="width:100%; padding:16px; font-size:15px;" disabled>
+        <i class="ri-secure-payment-line"></i> Payer avec BKApay
+      </button>
+
+      <!-- Logos opérateurs -->
+      <div style="text-align:center; margin-top:20px;">
+        <p style="font-size:11px; color:var(--gray); margin-bottom:10px;">
+          Opérateurs acceptés
+        </p>
+        <div style="display:flex; justify-content:center; gap:16px;
+          flex-wrap:wrap; font-size:12px; color:var(--gray);">
+          <span>🟠 Orange Money</span>
+          <span>🟡 MTN MoMo</span>
+          <span>🔵 Wave</span>
+          <span>🟢 Moov Money</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .quick-amount {
+      background: var(--dark2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 8px;
+      color: var(--white); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; width: 100%;
+    }
+    .quick-amount:active,
+    .quick-amount.selected {
+      background: rgba(108,60,255,0.15);
+      border-color: var(--primary); color: var(--primary);
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    let currentAmount = 0;
+
+    async function init() {
+      const wallet = await getWallet(user.id);
+      if (wallet) {
+        document.getElementById('depositBalance').textContent = formatMoney(wallet.deposit_balance);
+      }
+    }
+
+    function setAmount(amount) {
+      currentAmount = amount;
+      document.getElementById('amountInput').value = amount;
+      document.querySelectorAll('.quick-amount').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      updateRecap();
+    }
+
+    function onAmountInput() {
+      currentAmount = Number(document.getElementById('amountInput').value);
+      document.querySelectorAll('.quick-amount').forEach(btn => btn.classList.remove('selected'));
+      updateRecap();
+    }
+
+    function updateRecap() {
+      const recap   = document.getElementById('recap');
+      const payBtn  = document.getElementById('payBtn');
+      const alertEl = document.getElementById('alertError');
+
+      alertEl.classList.remove('show');
+
+      if (currentAmount >= 200) {
+        recap.style.display = 'block';
+        document.getElementById('recapAmount').textContent = formatMoney(currentAmount);
+        payBtn.disabled = false;
+      } else {
+        recap.style.display = 'none';
+        payBtn.disabled = true;
+      }
+    }
+
+    function startPayment() {
+      const alertEl = document.getElementById('alertError');
+      if (!currentAmount || currentAmount < 200) {
+        alertEl.textContent = 'Montant minimum : 200 F.';
+        alertEl.classList.add('show');
+        return;
+      }
+      // Sauvegarder le montant en session pour vérification au retour
+      sessionStorage.setItem('deposit_amount', currentAmount);
+      redirectToDeposit(currentAmount);
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

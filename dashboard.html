@@ -36,39 +36,54 @@
         <div id="accountStatus" style="margin-top:6px;"></div>
       </div>
 
-      <!-- Portefeuilles -->
-      <div class="wallet-grid">
+      <!-- 3 Portefeuilles -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
         <div class="wallet-card">
-          <div class="wallet-label">💰 Portefeuille Unique</div>
+          <div class="wallet-label">💳 Dépôt</div>
+          <div class="wallet-amount" id="depositBalance">0 F</div>
+          <div class="wallet-sub">Solde disponible</div>
+        </div>
+        <div class="wallet-card secondary">
+          <div class="wallet-label">💰 Unique</div>
           <div class="wallet-amount" id="uniqueBalance">0 F</div>
           <div class="wallet-sub">Gains plan fixe</div>
         </div>
-        <div class="wallet-card secondary">
-          <div class="wallet-label">💳 Portefeuille Retrait</div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div class="wallet-card" style="background:linear-gradient(135deg,#1a3a2a,#0d2018);
+          border-color:var(--success);">
+          <div class="wallet-label">🏦 Retrait</div>
           <div class="wallet-amount" id="withdrawalBalance">0 F</div>
-          <div class="wallet-sub">Disponible au retrait</div>
+          <div class="wallet-sub">Bonus, commissions & plans courts</div>
         </div>
       </div>
 
       <!-- Actions rapides -->
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;">
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px;">
+        <a href="deposit.html" style="text-decoration:none;">
+          <div style="background:linear-gradient(135deg,rgba(108,60,255,0.2),rgba(108,60,255,0.05));
+            border:1px solid var(--primary); border-radius:var(--radius); padding:14px; text-align:center;">
+            <i class="ri-add-circle-line" style="font-size:24px; color:var(--primary);"></i>
+            <div style="font-size:11px; color:var(--primary); margin-top:6px; font-weight:700;">Déposer</div>
+          </div>
+        </a>
         <a href="products.html" style="text-decoration:none;">
           <div style="background:var(--dark2); border:1px solid var(--border);
-            border-radius:var(--radius); padding:16px; text-align:center;">
+            border-radius:var(--radius); padding:14px; text-align:center;">
             <i class="ri-store-2-line" style="font-size:24px; color:var(--primary);"></i>
             <div style="font-size:11px; color:var(--gray); margin-top:6px; font-weight:600;">Investir</div>
           </div>
         </a>
         <a href="withdraw.html" style="text-decoration:none;">
           <div style="background:var(--dark2); border:1px solid var(--border);
-            border-radius:var(--radius); padding:16px; text-align:center;">
+            border-radius:var(--radius); padding:14px; text-align:center;">
             <i class="ri-bank-card-line" style="font-size:24px; color:var(--primary);"></i>
             <div style="font-size:11px; color:var(--gray); margin-top:6px; font-weight:600;">Retirer</div>
           </div>
         </a>
         <a href="team.html" style="text-decoration:none;">
           <div style="background:var(--dark2); border:1px solid var(--border);
-            border-radius:var(--radius); padding:16px; text-align:center;">
+            border-radius:var(--radius); padding:14px; text-align:center;">
             <i class="ri-group-line" style="font-size:24px; color:var(--primary);"></i>
             <div style="font-size:11px; color:var(--gray); margin-top:6px; font-weight:600;">Équipe</div>
           </div>
@@ -166,93 +181,82 @@
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <a href="dashboard.html" class="nav-item active">
-      <i class="ri-home-5-line"></i>
-      <span>Accueil</span>
+      <i class="ri-home-5-line"></i><span>Accueil</span>
     </a>
     <a href="products.html" class="nav-item">
-      <i class="ri-store-2-line"></i>
-      <span>Investir</span>
+      <i class="ri-store-2-line"></i><span>Investir</span>
     </a>
     <a href="team.html" class="nav-item">
-      <i class="ri-group-line"></i>
-      <span>Équipe</span>
+      <i class="ri-group-line"></i><span>Équipe</span>
     </a>
     <a href="profile.html" class="nav-item">
-      <i class="ri-user-3-line"></i>
-      <span>Moi</span>
+      <i class="ri-user-3-line"></i><span>Moi</span>
     </a>
   </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="supabase.js"></script>
-<script src="app.js"></script>
+  <script src="app.js"></script>
   <script>
     const user = getSession();
     if (!user) window.location.href = 'login.html';
 
     const TX_LABELS = {
-      deposit:          { icon: '💳', label: 'Dépôt' },
-      withdrawal:       { icon: '🏧', label: 'Retrait' },
-      gain_fixed:       { icon: '📈', label: 'Gain plan fixe' },
-      gain_short:       { icon: '🚀', label: 'Gain plan court' },
-      referral:         { icon: '👥', label: 'Commission parrainage' },
-      bonus_activation: { icon: '🎁', label: 'Bonus activation' },
-      bonus_first_short:{ icon: '🎉', label: 'Bonus premier plan' }
+      deposit:           { icon: '💳', label: 'Dépôt' },
+      withdrawal:        { icon: '🏧', label: 'Retrait' },
+      gain_fixed:        { icon: '📈', label: 'Gain plan fixe' },
+      gain_short:        { icon: '🚀', label: 'Gain plan court' },
+      referral:          { icon: '👥', label: 'Commission parrainage' },
+      bonus_activation:  { icon: '🎁', label: 'Bonus activation' },
+      bonus_first_short: { icon: '🎉', label: 'Bonus premier plan' }
     };
 
     async function loadDashboard() {
-      // Nom utilisateur
       document.getElementById('userName').textContent = user.full_name;
 
-      // Statut compte
       const statusEl = document.getElementById('accountStatus');
-      if (user.is_active) {
-        statusEl.innerHTML = '<span class="badge badge-success">✓ Compte actif</span>';
-      } else {
-        statusEl.innerHTML = '<span class="badge badge-warning">⚠ Compte non activé</span>';
-      }
+      statusEl.innerHTML = user.is_active
+        ? '<span class="badge badge-success">✓ Compte actif</span>'
+        : '<span class="badge badge-warning">⚠ Compte non activé</span>';
 
-      // Portefeuilles
+      // 3 portefeuilles
       const wallet = await getWallet(user.id);
       if (wallet) {
+        document.getElementById('depositBalance').textContent    = formatMoney(wallet.deposit_balance);
         document.getElementById('uniqueBalance').textContent     = formatMoney(wallet.unique_balance);
         document.getElementById('withdrawalBalance').textContent = formatMoney(wallet.withdrawal_balance);
       }
 
-      // Plans utilisateur
-      const plans = await getUserPlans(user.id);
+      // Plans
+      const plans     = await getUserPlans(user.id);
       const fixedPlan = plans.find(p => p.type === 'fixed' && p.status === 'active');
-      const shortPlans = plans.filter(p => p.type === 'short' && p.status === 'active');
+      const shortPlans= plans.filter(p => p.type === 'short' && p.status === 'active');
 
       // Plan fixe
       if (fixedPlan) {
         document.getElementById('fixedPlanSection').style.display = 'block';
-        document.getElementById('noFixedPlan').style.display = 'none';
-
-        const end  = new Date(fixedPlan.end_date);
-        const now  = new Date();
+        document.getElementById('noFixedPlan').style.display      = 'none';
+        const end   = new Date(fixedPlan.end_date);
+        const now   = new Date();
         const total = 180;
         const left  = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-        const done  = total - left;
-        const pct   = Math.min(100, Math.round((done / total) * 100));
-
+        const pct   = Math.min(100, Math.round(((total - left) / total) * 100));
         document.getElementById('fixedEndDate').textContent  = end.toLocaleDateString('fr-FR');
         document.getElementById('fixedDaysLeft').textContent = left;
         document.getElementById('fixedProgress').style.width = pct + '%';
       } else {
         document.getElementById('fixedPlanSection').style.display = 'none';
-        document.getElementById('noFixedPlan').style.display = 'block';
+        document.getElementById('noFixedPlan').style.display      = 'block';
       }
 
       // Plans courts
       if (shortPlans.length > 0) {
         document.getElementById('shortPlansSection').style.display = 'block';
-        const list = document.getElementById('shortPlansList');
-        list.innerHTML = shortPlans.map(p => {
+        document.getElementById('shortPlansList').innerHTML = shortPlans.map(p => {
           const end  = new Date(p.end_date);
           const now  = new Date();
           const left = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-          const days = p.plans?.duration_days || 0;
+          const days = p.plans?.duration_days || 1;
           const pct  = Math.min(100, Math.round(((days - left) / days) * 100));
           return `
             <div class="card" style="margin-bottom:12px;">
@@ -262,7 +266,7 @@
               </div>
               <div style="font-size:13px; color:var(--gray);">
                 Investi : <strong style="color:var(--white);">${formatMoney(p.amount_paid)}</strong>
-                &nbsp;→&nbsp; Gain total : <strong style="color:var(--success);">${formatMoney(p.gain_total)}</strong>
+                &nbsp;→&nbsp; Total : <strong style="color:var(--success);">${formatMoney(p.gain_total)}</strong>
               </div>
               <div style="font-size:12px; color:var(--gray); margin-top:4px; margin-bottom:10px;">
                 Fin le : <strong style="color:var(--white);">${end.toLocaleDateString('fr-FR')}</strong>
@@ -275,18 +279,15 @@
         }).join('');
       }
 
-      // Transactions récentes (5 dernières)
-      const txs = await getTransactions(user.id);
+      // Transactions récentes
+      const txs    = await getTransactions(user.id);
       const txList = document.getElementById('txList');
       if (txs.length === 0) {
-        txList.innerHTML = `
-          <div class="empty-state">
-            <i class="ri-file-list-3-line"></i>
-            <p>Aucune transaction</p>
-          </div>`;
+        txList.innerHTML = `<div class="empty-state">
+          <i class="ri-file-list-3-line"></i><p>Aucune transaction</p></div>`;
       } else {
         txList.innerHTML = txs.slice(0, 5).map(tx => {
-          const info = TX_LABELS[tx.type] || { icon: '💰', label: tx.type };
+          const info  = TX_LABELS[tx.type] || { icon: '💰', label: tx.type };
           const isPos = tx.type !== 'withdrawal';
           const date  = new Date(tx.created_at).toLocaleDateString('fr-FR');
           return `
@@ -303,30 +304,25 @@
         }).join('');
       }
 
-      // Code parrainage
+      // Parrainage
       document.getElementById('myRefCode').textContent = user.referral_code;
-      const link = `${window.location.origin}/register.html?ref=${user.referral_code}`;
-      document.getElementById('myRefLink').textContent = link;
+      document.getElementById('myRefLink').textContent =
+        `${window.location.origin}/register.html?ref=${user.referral_code}`;
 
-      // Vérifier messages support non lus
-      const msgs = await getSupportMessages(user.id);
+      // Badge support
+      const msgs   = await getSupportMessages(user.id);
       const unread = msgs.filter(m => m.sender === 'admin' && !m.is_read);
-      if (unread.length > 0) {
+      if (unread.length > 0)
         document.getElementById('supportBadge').style.display = 'block';
-      }
 
       // Créditer plans courts terminés
       await creditCompletedPlans();
     }
 
-    // Créditer plans courts terminés côté client
     async function creditCompletedPlans() {
       const { data: completed } = await db
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('type', 'short')
-        .eq('status', 'active')
+        .from('user_plans').select('*')
+        .eq('user_id', user.id).eq('type', 'short').eq('status', 'active')
         .lte('end_date', new Date().toISOString());
 
       if (!completed || completed.length === 0) return;
@@ -336,15 +332,12 @@
         await logTransaction(user.id, 'gain_short', plan.gain_total, 'withdrawal', 'completed', 'Gain plan court terminé');
         await db.from('user_plans').update({ status: 'completed' }).eq('id', plan.id);
       }
-
-      if (completed.length > 0) loadDashboard();
+      loadDashboard();
     }
 
     function copyRef() {
       const link = `${window.location.origin}/register.html?ref=${user.referral_code}`;
-      navigator.clipboard.writeText(link).then(() => {
-        alert('Lien copié !');
-      });
+      navigator.clipboard.writeText(link).then(() => alert('Lien copié !'));
     }
 
     loadDashboard();

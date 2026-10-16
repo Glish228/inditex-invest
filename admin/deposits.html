@@ -24,7 +24,8 @@
         <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
       </a>
       <a href="plans.html" class="sidebar-item"><i class="ri-store-2-line"></i> Plans</a>
-      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+      <div class="sidebar-item" onclick="adminLogout()"
+        style="cursor:pointer; margin-top:auto; color:var(--danger);">
         <i class="ri-logout-box-line"></i> Déconnexion
       </div>
     </nav>
@@ -34,7 +35,7 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <button onclick="toggleSidebar()" class="menu-btn"><i class="ri-menu-line"></i></button>
-      <div style="font-size:16px; font-weight:700;">Dépôts Flinpay</div>
+      <div style="font-size:16px; font-weight:700;">Dépôts BKApay</div>
     </div>
 
     <div class="admin-content">
@@ -73,7 +74,7 @@
       <!-- Filtres -->
       <div class="admin-tabs">
         <button class="admin-tab active" onclick="setFilter('all', this)">Tous</button>
-        <button class="admin-tab" onclick="setFilter('confirmed', this)">Confirmés</button>
+        <button class="admin-tab" onclick="setFilter('completed', this)">Confirmés</button>
         <button class="admin-tab" onclick="setFilter('pending', this)">En attente</button>
         <button class="admin-tab" onclick="setFilter('failed', this)">Échoués</button>
       </div>
@@ -85,15 +86,14 @@
             <thead>
               <tr>
                 <th>Utilisateur</th>
-                <th>Plan</th>
                 <th>Montant</th>
-                <th>Référence Flinpay</th>
+                <th>Référence BKApay</th>
                 <th>Date</th>
                 <th>Statut</th>
               </tr>
             </thead>
             <tbody id="depositsTable">
-              <tr><td colspan="6" class="admin-empty">Chargement...</td></tr>
+              <tr><td colspan="5" class="admin-empty">Chargement...</td></tr>
             </tbody>
           </table>
         </div>
@@ -102,7 +102,7 @@
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="../supabase.js"></script>
   <script src="../app.js"></script>
   <script src="admin.js"></script>
@@ -115,12 +115,12 @@
     async function loadDeposits() {
       const { data: deposits } = await db
         .from('deposits')
-        .select('*, users(full_name, phone, country_code), plans(name, type)')
+        .select('*, users(full_name, phone, country_code)')
         .order('created_at', { ascending: false });
 
       allDeposits = deposits || [];
 
-      const confirmed = allDeposits.filter(d => d.status === 'confirmed');
+      const confirmed = allDeposits.filter(d => d.status === 'completed');
       const pending   = allDeposits.filter(d => d.status === 'pending');
       const total     = confirmed.reduce((s, d) => s + Number(d.amount), 0);
 
@@ -145,12 +145,12 @@
 
       const tbody = document.getElementById('depositsTable');
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="admin-empty">Aucun dépôt</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="admin-empty">Aucun dépôt</td></tr>`;
         return;
       }
 
       const statusMap = {
-        confirmed: { cls: 'badge-success', label: 'Confirmé'   },
+        completed: { cls: 'badge-success', label: 'Confirmé'   },
         pending:   { cls: 'badge-warning', label: 'En attente' },
         failed:    { cls: 'badge-danger',  label: 'Échoué'     }
       };
@@ -165,16 +165,9 @@
                 ${d.users?.country_code || ''} ${d.users?.phone || ''}
               </div>
             </td>
-            <td>
-              <div style="font-weight:600;">${d.plans?.name || '-'}</div>
-              <span class="badge ${d.plans?.type === 'fixed' ? 'badge-primary' : 'badge-warning'}"
-                style="font-size:10px;">
-                ${d.plans?.type === 'fixed' ? 'Fixe' : 'Court'}
-              </span>
-            </td>
             <td style="font-weight:900; color:var(--success);">${formatMoney(d.amount)}</td>
             <td style="font-size:11px; color:var(--gray); font-family:monospace;">
-              ${d.flinpay_ref || '-'}
+              ${d.payment_ref || '-'}
             </td>
             <td style="font-size:12px; color:var(--gray);">${formatDateTime(d.created_at)}</td>
             <td><span class="badge ${s.cls}">${s.label}</span></td>

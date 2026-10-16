@@ -5,63 +5,43 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── AUTH ────────────────────────────────────────────────
 async function registerUser(data) {
-  // Générer un code unique garanti
   let code = generateCode();
   let attempts = 0;
   while (attempts < 10) {
     const { data: existing } = await db
-      .from('users')
-      .select('id')
-      .eq('referral_code', code)
-      .maybeSingle();
+      .from('users').select('id').eq('referral_code', code).maybeSingle();
     if (!existing) break;
     code = generateCode();
     attempts++;
   }
-  
-  // Vérifier si numéro déjà utilisé
+
   const { data: existingPhone } = await db
-    .from('users')
-    .select('id')
-    .eq('phone', data.phone)
-    .eq('country_code', data.country_code)
-    .maybeSingle();
-  
+    .from('users').select('id')
+    .eq('phone', data.phone).eq('country_code', data.country_code).maybeSingle();
   if (existingPhone) return { error: 'Ce numéro est déjà enregistré.' };
-  
+
   const { data: user, error } = await db
     .from('users')
     .insert({
-      phone: data.phone,
-      country_code: data.country_code,
-      full_name: data.full_name,
-      password: data.password,
-      referral_code: code,
-      referred_by: data.referred_by || null
+      phone: data.phone, country_code: data.country_code,
+      full_name: data.full_name, password: data.password,
+      referral_code: code, referred_by: data.referred_by || null
     })
-    .select()
-    .single();
-  
+    .select().single();
   if (error) return { error: 'Erreur inscription : ' + error.message };
-  
+
   const { error: walletError } = await db
-    .from('wallets')
-    .insert({ user_id: user.id });
-  
+    .from('wallets').insert({ user_id: user.id });
   if (walletError) return { error: 'Erreur création portefeuille : ' + walletError.message };
-  
+
   return { user };
 }
 
 async function loginUser(country_code, phone, password) {
   const { data: user, error } = await db
-    .from('users')
-    .select('*')
-    .eq('phone', phone)
-    .eq('country_code', country_code)
-    .eq('password', password)
+    .from('users').select('*')
+    .eq('phone', phone).eq('country_code', country_code).eq('password', password)
     .maybeSingle();
-
   if (error || !user) return { error: 'Numéro ou mot de passe incorrect.' };
   if (user.is_frozen) return { error: 'Votre compte est suspendu. Contactez le support.' };
   return { user };
@@ -70,10 +50,7 @@ async function loginUser(country_code, phone, password) {
 // ─── WALLET ──────────────────────────────────────────────
 async function getWallet(user_id) {
   const { data, error } = await db
-    .from('wallets')
-    .select('*')
-    .eq('user_id', user_id)
-    .single();
+    .from('wallets').select('*').eq('user_id', user_id).single();
   if (error) return null;
   return data;
 }
@@ -90,93 +67,151 @@ async function updateWallet(user_id, field, amount) {
   return { success: true };
 }
 
+// ─── DÉPÔT BKApay ────────────────────────────────────────
+const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
+
+function redirectToDeposit(amount) {
+  const callback = encodeURIComponent(window.location.origin + '/deposit-callback.html');
+  const desc     = encodeURIComponent('Dépôt Inditex Invest');
+  window.location.href =
+    `https://bkapay.com/api-pay/${BKA_PUBLIC_KEY}?amount=${amount}&description=${desc}&callback=${callback}`;
+}
+
+async function confirmDeposit(user_id, transactionId, amount) {
+  try {
+    const res  = await fetch(`https://bkapay.com/api/inline-pay/status/${transactionId}`);
+    const data = await res.json();
+
+    if (data.status !== 'completed') return { error: 'Paiement non confirmé.' };
+    if (Number(data.amount) !== Number(amount)) return { error: 'Montant invalide.' };
+
+    // Idempotence : déjà traité ?
+    const { data: existing } = await db
+      .from('deposits').select('id').eq('payment_ref', transactionId).maybeSingle();
+    if (existing) return { already: true };
+
+    // Créditer portefeuille dépôt
+    await updateWallet(user_id, 'deposit_balance', amount);
+    await db.from('deposits').insert({
+      user_id, amount, payment_ref: transactionId, status: 'completed'
+    });
+    await logTransaction(user_id, 'deposit', amount, 'deposit', 'completed', 'Dépôt Mobile Money');
+    return { success: true };
+  } catch (e) {
+    return { error: 'Erreur vérification paiement.' };
+  }
+}
+
 // ─── PLANS ───────────────────────────────────────────────
 async function getPlans() {
   const { data, error } = await db
-    .from('plans')
-    .select('*')
-    .eq('is_active', true)
+    .from('plans').select('*').eq('is_active', true)
     .order('price', { ascending: true });
+  if (error) return [];
+  return data;
+}
+
+async function getPlanDurations() {
+  const { data, error } = await db
+    .from('plan_durations').select('*').order('duration_days', { ascending: true });
   if (error) return [];
   return data;
 }
 
 async function getUserPlans(user_id) {
   const { data, error } = await db
-    .from('user_plans')
-    .select('*, plans(*)')
-    .eq('user_id', user_id)
-    .order('start_date', { ascending: false });
+    .from('user_plans').select('*, plans(*)')
+    .eq('user_id', user_id).order('start_date', { ascending: false });
   if (error) return [];
   return data;
 }
 
 async function buyFixedPlan(user_id, plan) {
-  // Vérifier si plan fixe déjà acheté
+  // Déjà un plan fixe ?
   const { data: existing } = await db
-    .from('user_plans')
-    .select('id')
-    .eq('user_id', user_id)
-    .eq('type', 'fixed')
-    .maybeSingle();
+    .from('user_plans').select('id')
+    .eq('user_id', user_id).eq('type', 'fixed').maybeSingle();
   if (existing) return { error: 'Vous avez déjà le plan fixe.' };
+
+  // Vérifier solde dépôt
+  const wallet = await getWallet(user_id);
+  if (!wallet || wallet.deposit_balance < plan.price) {
+    return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
+  }
+
+  // Débiter portefeuille dépôt
+  const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
+  if (debit.error) return { error: debit.error };
 
   const end_date = new Date();
   end_date.setDate(end_date.getDate() + 180);
 
   const { error } = await db.from('user_plans').insert({
-    user_id,
-    plan_id: plan.id,
-    type: 'fixed',
-    amount_paid: plan.price,
-    start_date: new Date(),
-    end_date
+    user_id, plan_id: plan.id, type: 'fixed',
+    amount_paid: plan.price, start_date: new Date(), end_date
   });
-  if (error) return { error: error.message };
+  if (error) {
+    await updateWallet(user_id, 'deposit_balance', plan.price); // remboursement
+    return { error: error.message };
+  }
 
   // Activer le compte
   await db.from('users').update({ is_active: true }).eq('id', user_id);
 
-  // Bonus activation 500F → portefeuille retrait
+  // Bonus activation : 500 F → portefeuille retrait
   await updateWallet(user_id, 'withdrawal_balance', 500);
   await logTransaction(user_id, 'bonus_activation', 500, 'withdrawal', 'completed', 'Bonus activation compte');
 
-  // Gérer parrainage niveau 1, 2, 3
+  // Parrainage
   await handleReferralBonus(user_id, plan.price);
 
   return { success: true };
 }
 
-async function buyShortPlan(user_id, plan) {
+async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
   if (!await isAccountActive(user_id)) {
     return { error: 'Activez votre compte avec le plan fixe d\'abord.' };
   }
 
-  const gain_total = plan.price * (plan.total_gain_percent / 100) + Number(plan.price);
-  const end_date = new Date();
-  end_date.setDate(end_date.getDate() + plan.duration_days);
+  // Vérifier solde dépôt
+  const wallet = await getWallet(user_id);
+  if (!wallet || wallet.deposit_balance < plan.price) {
+    return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
+  }
+
+  // Vérifier si c'est le premier plan court AVANT l'achat
+  const { count: shortCount } = await db
+    .from('user_plans').select('id', { count: 'exact' })
+    .eq('user_id', user_id).eq('type', 'short');
+  const isFirst = shortCount === 0;
+
+  // Débiter portefeuille dépôt
+  const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
+  if (debit.error) return { error: debit.error };
+
+  const gain_total = plan.price * (gain_percent / 100) + Number(plan.price);
+  const end_date   = new Date();
+  end_date.setDate(end_date.getDate() + duration_days);
 
   const { error } = await db.from('user_plans').insert({
-    user_id,
-    plan_id: plan.id,
-    type: 'short',
-    amount_paid: plan.price,
-    gain_total,
-    start_date: new Date(),
-    end_date
+    user_id, plan_id: plan.id, type: 'short',
+    amount_paid: plan.price, gain_total,
+    start_date: new Date(), end_date
   });
-  if (error) return { error: error.message };
+  if (error) {
+    await updateWallet(user_id, 'deposit_balance', plan.price); // remboursement
+    return { error: error.message };
+  }
 
-  // Vérifier si c'est le premier plan court
-  const { count } = await db
-    .from('user_plans')
-    .select('id', { count: 'exact' })
-    .eq('user_id', user_id)
-    .eq('type', 'short');
-
-  if (count === 1) {
-    await updateWallet(user_id, 'withdrawal_balance', 500);
-    await logTransaction(user_id, 'bonus_first_short', 500, 'withdrawal', 'completed', 'Bonus premier plan court');
+  // Bonus premier plan court uniquement
+  if (isFirst) {
+    // 3 000, 5 000, 10 000 F → 1 000 F ; 15 000 F et plus → 1 500 F
+    const bonus = plan.price <= 10000 ? 1000 : 1500;
+    await updateWallet(user_id, 'withdrawal_balance', bonus);
+    await logTransaction(
+      user_id, 'bonus_first_short', bonus, 'withdrawal', 'completed',
+      `Bonus premier plan court (${formatMoney(plan.price)})`
+    );
   }
 
   return { success: true };
@@ -212,52 +247,42 @@ async function handleReferralBonus(user_id, amount) {
 }
 
 // ─── RETRAIT ─────────────────────────────────────────────
-async function requestWithdrawal(user_id, amount, mobile_number, country_code) {
-  const now = new Date();
+async function requestWithdrawal(user_id, amount, mobile_number, country_code, operator) {
+  const now  = new Date();
   const hour = now.getHours();
-  if (hour < 7 || hour >= 18) {
-    return { error: 'Les retraits sont disponibles de 7h à 18h.' };
-  }
-  if (amount < 1000) {
-    return { error: 'Montant minimum de retrait : 1 000 F.' };
-  }
+  if (hour < 7 || hour >= 18) return { error: 'Les retraits sont disponibles de 7h à 18h.' };
+  if (amount < 1000) return { error: 'Montant minimum de retrait : 1 000 F.' };
 
   const wallet = await getWallet(user_id);
-  if (!wallet || wallet.withdrawal_balance < amount) {
-    return { error: 'Solde insuffisant.' };
-  }
+  if (!wallet || wallet.withdrawal_balance < amount) return { error: 'Solde insuffisant.' };
 
-  const fee = amount * 0.10;
+  const fee        = amount * 0.10;
   const amount_net = amount - fee;
 
-  // Débiter le portefeuille
   await updateWallet(user_id, 'withdrawal_balance', -amount);
 
   const { error } = await db.from('withdrawals').insert({
-    user_id, amount, fee, amount_net, mobile_number, country_code
+    user_id, amount, fee, amount_net, mobile_number, country_code, operator
   });
   if (error) {
     await updateWallet(user_id, 'withdrawal_balance', amount);
     return { error: error.message };
   }
 
-  await logTransaction(user_id, 'withdrawal', amount, 'withdrawal', 'pending', 'Demande de retrait');
+  await logTransaction(user_id, 'withdrawal', amount, 'withdrawal', 'pending', `Retrait via ${operator}`);
   return { success: true, amount_net };
 }
 
 // ─── SUPPORT ─────────────────────────────────────────────
 async function sendSupportMessage(user_id, message) {
-  const { error } = await db.from('support_messages').insert({
-    user_id, message, sender: 'user'
-  });
+  const { error } = await db.from('support_messages')
+    .insert({ user_id, message, sender: 'user' });
   return error ? { error: error.message } : { success: true };
 }
 
 async function getSupportMessages(user_id) {
   const { data, error } = await db
-    .from('support_messages')
-    .select('*')
-    .eq('user_id', user_id)
+    .from('support_messages').select('*').eq('user_id', user_id)
     .order('created_at', { ascending: true });
   if (error) return [];
   return data;
@@ -266,9 +291,7 @@ async function getSupportMessages(user_id) {
 // ─── TRANSACTIONS ────────────────────────────────────────
 async function getTransactions(user_id) {
   const { data, error } = await db
-    .from('transactions')
-    .select('*')
-    .eq('user_id', user_id)
+    .from('transactions').select('*').eq('user_id', user_id)
     .order('created_at', { ascending: false });
   if (error) return [];
   return data;
@@ -287,33 +310,21 @@ function generateCode() {
 }
 
 async function isAccountActive(user_id) {
-  const { data } = await db
-    .from('users').select('is_active').eq('id', user_id).single();
+  const { data } = await db.from('users').select('is_active').eq('id', user_id).single();
   return data?.is_active === true;
 }
 
-function saveSession(user) {
-  localStorage.setItem('inditex_user', JSON.stringify(user));
-}
+function saveSession(user) { localStorage.setItem('inditex_user', JSON.stringify(user)); }
+function getSession()      { const d = localStorage.getItem('inditex_user'); return d ? JSON.parse(d) : null; }
+function clearSession()    { localStorage.removeItem('inditex_user'); }
 
-function getSession() {
-  const data = localStorage.getItem('inditex_user');
-  return data ? JSON.parse(data) : null;
-}
-
-function clearSession() {
-  localStorage.removeItem('inditex_user');
-}
-
-function formatMoney(amount) {
-  return Number(amount).toLocaleString('fr-FR') + ' F';
-}
+function formatMoney(amount) { return Number(amount).toLocaleString('fr-FR') + ' F'; }
 
 function getCountries() {
   return [
-    { name: 'Togo',          code: '+228' },
-    { name: 'Bénin',         code: '+229' },
+    { name: 'Togo',           code: '+228' },
+    { name: 'Bénin',          code: '+229' },
     { name: 'Côte d\'Ivoire', code: '+225' },
-    { name: 'Cameroun',      code: '+237' }
+    { name: 'Cameroun',       code: '+237' }
   ];
 }
