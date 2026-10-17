@@ -1,7 +1,10 @@
 // ─── AUTH ADMIN ───────────────────────────────────────────
 function checkAdminAuth() {
   const admin = localStorage.getItem('inditex_admin');
-  if (!admin) window.location.href = 'login.html';
+  if (!admin) {
+    window.location.href = 'login.html';
+    return;
+  }
 }
 
 function adminLogout() {

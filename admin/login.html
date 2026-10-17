@@ -12,7 +12,6 @@
   min-height:100vh; background:var(--dark);">
 
   <div style="width:100%; max-width:400px; padding:20px;">
-
     <div style="text-align:center; margin-bottom:32px;">
       <div class="brand-logo" style="font-size:32px;">INDITEX</div>
       <div style="font-size:13px; color:var(--gray); margin-top:6px;">
@@ -37,14 +36,13 @@
         <i class="ri-shield-user-line"></i> Se connecter
       </button>
     </div>
-
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="../supabase.js"></script>
   <script src="../app.js"></script>
   <script>
-    // ✅ localStorage au lieu de sessionStorage
+    // ✅ localStorage — persiste entre les pages
     if (localStorage.getItem('inditex_admin')) {
       window.location.href = 'index.html';
     }

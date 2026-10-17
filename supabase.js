@@ -85,12 +85,10 @@ async function confirmDeposit(user_id, transactionId, amount) {
     if (data.status !== 'completed') return { error: 'Paiement non confirmé.' };
     if (Number(data.amount) !== Number(amount)) return { error: 'Montant invalide.' };
 
-    // Idempotence : déjà traité ?
     const { data: existing } = await db
       .from('deposits').select('id').eq('payment_ref', transactionId).maybeSingle();
     if (existing) return { already: true };
 
-    // Créditer portefeuille dépôt
     await updateWallet(user_id, 'deposit_balance', amount);
     await db.from('deposits').insert({
       user_id, amount, payment_ref: transactionId, status: 'completed'
@@ -127,19 +125,16 @@ async function getUserPlans(user_id) {
 }
 
 async function buyFixedPlan(user_id, plan) {
-  // Déjà un plan fixe ?
   const { data: existing } = await db
     .from('user_plans').select('id')
     .eq('user_id', user_id).eq('type', 'fixed').maybeSingle();
   if (existing) return { error: 'Vous avez déjà le plan fixe.' };
 
-  // Vérifier solde dépôt
   const wallet = await getWallet(user_id);
   if (!wallet || wallet.deposit_balance < plan.price) {
     return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
   }
 
-  // Débiter portefeuille dépôt
   const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
   if (debit.error) return { error: debit.error };
 
@@ -151,18 +146,18 @@ async function buyFixedPlan(user_id, plan) {
     amount_paid: plan.price, start_date: new Date(), end_date
   });
   if (error) {
-    await updateWallet(user_id, 'deposit_balance', plan.price); // remboursement
+    await updateWallet(user_id, 'deposit_balance', plan.price);
     return { error: error.message };
   }
 
-  // Activer le compte
   await db.from('users').update({ is_active: true }).eq('id', user_id);
 
-  // Bonus activation : 500 F → portefeuille retrait
+  // Bonus activation : 500 F → retrait
   await updateWallet(user_id, 'withdrawal_balance', 500);
-  await logTransaction(user_id, 'bonus_activation', 500, 'withdrawal', 'completed', 'Bonus activation compte');
+  await logTransaction(user_id, 'bonus_activation', 500, 'withdrawal', 'completed',
+    'Bonus activation compte');
 
-  // Parrainage
+  // ✅ Parrainage sur plan fixe
   await handleReferralBonus(user_id, plan.price);
 
   return { success: true };
@@ -173,19 +168,17 @@ async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
     return { error: 'Activez votre compte avec le plan fixe d\'abord.' };
   }
 
-  // Vérifier solde dépôt
   const wallet = await getWallet(user_id);
   if (!wallet || wallet.deposit_balance < plan.price) {
     return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
   }
 
-  // Vérifier si c'est le premier plan court AVANT l'achat
+  // Vérifier si c'est le premier plan court
   const { count: shortCount } = await db
     .from('user_plans').select('id', { count: 'exact' })
     .eq('user_id', user_id).eq('type', 'short');
   const isFirst = shortCount === 0;
 
-  // Débiter portefeuille dépôt
   const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
   if (debit.error) return { error: debit.error };
 
@@ -199,20 +192,20 @@ async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
     start_date: new Date(), end_date
   });
   if (error) {
-    await updateWallet(user_id, 'deposit_balance', plan.price); // remboursement
+    await updateWallet(user_id, 'deposit_balance', plan.price);
     return { error: error.message };
   }
 
-  // Bonus premier plan court uniquement
+  // Bonus premier plan court
   if (isFirst) {
-    // 3 000, 5 000, 10 000 F → 1 000 F ; 15 000 F et plus → 1 500 F
     const bonus = plan.price <= 10000 ? 1000 : 1500;
     await updateWallet(user_id, 'withdrawal_balance', bonus);
-    await logTransaction(
-      user_id, 'bonus_first_short', bonus, 'withdrawal', 'completed',
-      `Bonus premier plan court (${formatMoney(plan.price)})`
-    );
+    await logTransaction(user_id, 'bonus_first_short', bonus, 'withdrawal', 'completed',
+      `Bonus premier plan court (${formatMoney(plan.price)})`);
   }
+
+  // ✅ Parrainage sur plans courts aussi
+  await handleReferralBonus(user_id, plan.price);
 
   return { success: true };
 }
@@ -269,7 +262,8 @@ async function requestWithdrawal(user_id, amount, mobile_number, country_code, o
     return { error: error.message };
   }
 
-  await logTransaction(user_id, 'withdrawal', amount, 'withdrawal', 'pending', `Retrait via ${operator}`);
+  await logTransaction(user_id, 'withdrawal', amount, 'withdrawal', 'pending',
+    `Retrait via ${operator}`);
   return { success: true, amount_net };
 }
 
