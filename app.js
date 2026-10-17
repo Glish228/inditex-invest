@@ -18,6 +18,9 @@ function requireNoAuth() {
 document.addEventListener('DOMContentLoaded', async function() {
   const page = getCurrentPage();
   
+  // ✅ Ignorer toutes les pages admin — elles ont leur propre auth
+  if (window.location.pathname.includes('/admin/')) return;
+  
   // Pages publiques — redirige si déjà connecté
   if (['index', 'login', 'register'].includes(page)) {
     const user = getSession();
@@ -25,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       window.location.href = 'dashboard.html';
       return;
     }
-    // Remplir code parrainage depuis URL sur index
     if (page === 'index') {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref');
