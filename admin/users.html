@@ -24,7 +24,8 @@
         <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
       </a>
       <a href="plans.html" class="sidebar-item"><i class="ri-store-2-line"></i> Plans</a>
-      <div class="sidebar-item" onclick="adminLogout()" style="cursor:pointer; margin-top:auto; color:var(--danger);">
+      <div class="sidebar-item" onclick="adminLogout()"
+        style="cursor:pointer; margin-top:auto; color:var(--danger);">
         <i class="ri-logout-box-line"></i> Déconnexion
       </div>
     </nav>
@@ -42,7 +43,8 @@
 
       <!-- Recherche & Filtres -->
       <div class="admin-search">
-        <input type="text" id="searchInput" placeholder="🔍 Nom, téléphone, code parrainage..."
+        <input type="text" id="searchInput"
+          placeholder="🔍 Nom, téléphone, code parrainage..."
           oninput="filterUsers()">
         <select id="filterStatus" onchange="filterUsers()">
           <option value="all">Tous les statuts</option>
@@ -88,7 +90,7 @@
 
   <!-- MODAL DETAIL UTILISATEUR -->
   <div class="admin-modal-overlay" id="userModal">
-    <div class="admin-modal" style="max-width:600px;">
+    <div class="admin-modal" style="max-width:620px;">
       <div class="admin-modal-title" id="modalUserName">Détail utilisateur</div>
 
       <div class="admin-tabs">
@@ -130,7 +132,7 @@
 
         <!-- Actions compte -->
         <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-          <div class="alert alert-danger" id="modalAlert"></div>
+          <div class="alert alert-danger"  id="modalAlert"></div>
           <div class="alert alert-success" id="modalSuccess"></div>
 
           <!-- Geler / Dégeler -->
@@ -141,22 +143,29 @@
             <span id="frozenStatus"></span>
           </div>
 
-          <!-- Modifier soldes -->
+          <!-- Modifier les 3 soldes -->
           <div style="background:var(--dark3); border-radius:var(--radius-sm); padding:16px;">
             <div style="font-size:13px; font-weight:700; margin-bottom:12px;">
               Modifier les soldes
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
               <div>
                 <label style="font-size:11px; color:var(--gray); display:block; margin-bottom:4px;">
-                  Portefeuille Unique (F)
+                  💳 Dépôt (F)
+                </label>
+                <input type="number" class="form-input" id="newDepositBalance"
+                  placeholder="Ex: 5000" style="font-size:13px; padding:10px;">
+              </div>
+              <div>
+                <label style="font-size:11px; color:var(--gray); display:block; margin-bottom:4px;">
+                  💰 Unique (F)
                 </label>
                 <input type="number" class="form-input" id="newUniqueBalance"
                   placeholder="Ex: 5000" style="font-size:13px; padding:10px;">
               </div>
               <div>
                 <label style="font-size:11px; color:var(--gray); display:block; margin-bottom:4px;">
-                  Portefeuille Retrait (F)
+                  🏦 Retrait (F)
                 </label>
                 <input type="number" class="form-input" id="newWithdrawalBalance"
                   placeholder="Ex: 3000" style="font-size:13px; padding:10px;">
@@ -171,14 +180,20 @@
 
       <!-- Tab Portefeuilles -->
       <div id="tab-wallets" style="display:none;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
           <div class="wallet-card">
-            <div class="wallet-label">💰 Portefeuille Unique</div>
+            <div class="wallet-label">💳 Dépôt</div>
+            <div class="wallet-amount" id="dWalletDeposit">0 F</div>
+            <div class="wallet-sub">Fonds disponibles</div>
+          </div>
+          <div class="wallet-card secondary">
+            <div class="wallet-label">💰 Unique</div>
             <div class="wallet-amount" id="dWalletUnique">0 F</div>
             <div class="wallet-sub">Gains plan fixe</div>
           </div>
-          <div class="wallet-card secondary">
-            <div class="wallet-label">💳 Portefeuille Retrait</div>
+          <div class="wallet-card" style="background:linear-gradient(135deg,#1a3a2a,#0d2018);
+            border-color:var(--success);">
+            <div class="wallet-label">🏦 Retrait</div>
             <div class="wallet-amount" id="dWalletWithdrawal">0 F</div>
             <div class="wallet-sub">Disponible</div>
           </div>
@@ -240,10 +255,19 @@
     };
 
     const TX_LABELS = {
-      deposit: 'Dépôt', withdrawal: 'Retrait',
-      gain_fixed: 'Gain fixe', gain_short: 'Gain court',
-      referral: 'Parrainage', bonus_activation: 'Bonus activation',
+      deposit:           'Dépôt',
+      withdrawal:        'Retrait',
+      gain_fixed:        'Gain fixe',
+      gain_short:        'Gain court',
+      referral:          'Parrainage',
+      bonus_activation:  'Bonus activation',
       bonus_first_short: 'Bonus 1er plan'
+    };
+
+    const WALLET_LABELS = {
+      deposit:    '💳 Dépôt',
+      unique:     '💰 Unique',
+      withdrawal: '🏦 Retrait'
     };
 
     let allUsers     = [];
@@ -251,10 +275,8 @@
 
     async function loadUsers() {
       const { data: users } = await db
-        .from('users')
-        .select('*')
+        .from('users').select('*')
         .order('created_at', { ascending: false });
-
       allUsers = users || [];
       document.getElementById('userCount').textContent = `${allUsers.length} utilisateurs`;
       renderUsers(allUsers);
@@ -266,25 +288,19 @@
         tbody.innerHTML = '<tr><td colspan="9" class="admin-empty">Aucun utilisateur trouvé</td></tr>';
         return;
       }
-
       tbody.innerHTML = users.map(u => {
         const filleuls = allUsers.filter(x => x.referred_by === u.referral_code).length;
         const parrain  = u.referred_by
           ? allUsers.find(x => x.referral_code === u.referred_by)?.full_name || u.referred_by
           : '-';
-        let statusBadge = '';
-        if (u.is_frozen) {
-          statusBadge = '<span class="badge badge-danger">Gelé</span>';
-        } else if (u.is_active) {
-          statusBadge = '<span class="badge badge-success">Actif</span>';
-        } else {
-          statusBadge = '<span class="badge badge-warning">Inactif</span>';
-        }
+        const badge = u.is_frozen
+          ? '<span class="badge badge-danger">Gelé</span>'
+          : u.is_active
+            ? '<span class="badge badge-success">Actif</span>'
+            : '<span class="badge badge-warning">Inactif</span>';
         return `
           <tr>
-            <td>
-              <div style="font-weight:700;">${u.full_name}</div>
-            </td>
+            <td><div style="font-weight:700;">${u.full_name}</div></td>
             <td>${u.country_code} ${u.phone}</td>
             <td>${COUNTRIES_LABEL[u.country_code] || u.country_code}</td>
             <td style="font-weight:700; color:var(--primary); letter-spacing:2px;">${u.referral_code}</td>
@@ -292,7 +308,7 @@
             <td style="text-align:center;">
               <span class="badge badge-primary">${filleuls}</span>
             </td>
-            <td>${statusBadge}</td>
+            <td>${badge}</td>
             <td style="font-size:12px; color:var(--gray);">${formatDate(u.created_at)}</td>
             <td>
               <button class="admin-btn admin-btn-primary admin-btn-sm"
@@ -308,24 +324,19 @@
       const search  = document.getElementById('searchInput').value.toLowerCase();
       const status  = document.getElementById('filterStatus').value;
       const country = document.getElementById('filterCountry').value;
-
       const filtered = allUsers.filter(u => {
         const matchSearch = !search ||
           u.full_name.toLowerCase().includes(search) ||
           u.phone.includes(search) ||
           u.referral_code.toLowerCase().includes(search);
-
         const matchStatus =
-          status === 'all' ? true :
+          status === 'all'      ? true :
           status === 'active'   ? (u.is_active && !u.is_frozen) :
           status === 'inactive' ? (!u.is_active && !u.is_frozen) :
           status === 'frozen'   ? u.is_frozen : true;
-
         const matchCountry = country === 'all' || u.country_code === country;
-
         return matchSearch && matchStatus && matchCountry;
       });
-
       renderUsers(filtered);
     }
 
@@ -333,12 +344,10 @@
       selectedUser = allUsers.find(u => u.id === userId);
       if (!selectedUser) return;
 
-      // Reset tabs
       switchTab('info', document.querySelector('.admin-tab'));
       document.getElementById('modalAlert').classList.remove('show');
       document.getElementById('modalSuccess').classList.remove('show');
 
-      // Remplir infos
       document.getElementById('modalUserName').textContent = selectedUser.full_name;
       document.getElementById('dUserName').textContent     = selectedUser.full_name;
       document.getElementById('dUserPhone').textContent    = selectedUser.country_code + ' ' + selectedUser.phone;
@@ -351,8 +360,7 @@
         : 'Aucun';
       document.getElementById('dUserReferredBy').textContent = parrain;
 
-      // Statut gel
-      const freezeBtn = document.getElementById('freezeBtn');
+      const freezeBtn    = document.getElementById('freezeBtn');
       const frozenStatus = document.getElementById('frozenStatus');
       if (selectedUser.is_frozen) {
         freezeBtn.innerHTML = '<i class="ri-lock-unlock-line"></i> Dégeler le compte';
@@ -364,11 +372,13 @@
         frozenStatus.innerHTML = '';
       }
 
-      // Portefeuilles
+      // ✅ Les 3 portefeuilles
       const wallet = await getWallet(selectedUser.id);
       if (wallet) {
+        document.getElementById('dWalletDeposit').textContent    = formatMoney(wallet.deposit_balance);
         document.getElementById('dWalletUnique').textContent     = formatMoney(wallet.unique_balance);
         document.getElementById('dWalletWithdrawal').textContent = formatMoney(wallet.withdrawal_balance);
+        document.getElementById('newDepositBalance').value       = wallet.deposit_balance;
         document.getElementById('newUniqueBalance').value        = wallet.unique_balance;
         document.getElementById('newWithdrawalBalance').value    = wallet.withdrawal_balance;
       }
@@ -388,8 +398,6 @@
       document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
       document.getElementById('tab-' + tab).style.display = 'block';
       if (btn) btn.classList.add('active');
-
-      // Charger données selon tab
       if (tab === 'plans')        loadUserPlans();
       if (tab === 'transactions') loadUserTransactions();
       if (tab === 'team')         loadUserTeam();
@@ -414,7 +422,7 @@
                 <div style="font-weight:700;">${p.plans?.name || 'Plan'}</div>
                 <div style="font-size:12px; color:var(--gray); margin-top:2px;">
                   Investi : ${formatMoney(p.amount_paid)}
-                  ${p.gain_total ? ' · Gain : ' + formatMoney(p.gain_total) : ''}
+                  ${p.gain_total ? ' · Total : ' + formatMoney(p.gain_total) : ''}
                 </div>
                 <div style="font-size:12px; color:var(--gray);">
                   Fin : ${end.toLocaleDateString('fr-FR')} · ${left} jour(s) restant(s)
@@ -429,21 +437,22 @@
     }
 
     async function loadUserTransactions() {
-      const txs  = await getTransactions(selectedUser.id);
+      const txs   = await getTransactions(selectedUser.id);
       const tbody = document.getElementById('dUserTx');
       if (!txs.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="admin-empty">Aucune transaction</td></tr>';
         return;
       }
       tbody.innerHTML = txs.map(tx => {
-        const isPos = tx.type !== 'withdrawal';
+        const isPos   = tx.type !== 'withdrawal';
+        const walletL = WALLET_LABELS[tx.wallet] || tx.wallet;
         return `
           <tr>
             <td>${TX_LABELS[tx.type] || tx.type}</td>
             <td style="font-weight:700; color:${isPos ? 'var(--success)' : 'var(--danger)'};">
               ${isPos ? '+' : '-'}${formatMoney(tx.amount)}
             </td>
-            <td>${tx.wallet === 'unique' ? '💰' : '💳'}</td>
+            <td style="font-size:12px;">${walletL}</td>
             <td style="font-size:12px;">${formatDateTime(tx.created_at)}</td>
             <td><span class="badge ${tx.status === 'completed' ? 'badge-success' : 'badge-warning'}">
               ${tx.status}
@@ -455,12 +464,10 @@
     async function loadUserTeam() {
       const el       = document.getElementById('dUserTeam');
       const filleuls = allUsers.filter(u => u.referred_by === selectedUser.referral_code);
-
       if (!filleuls.length) {
         el.innerHTML = '<div class="admin-empty">Aucun filleul direct</div>';
         return;
       }
-
       el.innerHTML = `
         <div style="font-size:13px; color:var(--gray); margin-bottom:12px;">
           ${filleuls.length} filleul(s) direct(s)
@@ -490,14 +497,8 @@
       if (!selectedUser) return;
       const newState = !selectedUser.is_frozen;
       const { error } = await db
-        .from('users')
-        .update({ is_frozen: newState })
-        .eq('id', selectedUser.id);
-
-      if (error) {
-        showAdminAlert('modalAlert', 'Erreur lors de la modification.');
-        return;
-      }
+        .from('users').update({ is_frozen: newState }).eq('id', selectedUser.id);
+      if (error) { showAdminAlert('modalAlert', 'Erreur lors de la modification.'); return; }
 
       selectedUser.is_frozen = newState;
       const idx = allUsers.findIndex(u => u.id === selectedUser.id);
@@ -506,25 +507,25 @@
       const freezeBtn    = document.getElementById('freezeBtn');
       const frozenStatus = document.getElementById('frozenStatus');
       if (newState) {
-        freezeBtn.innerHTML = '<i class="ri-lock-unlock-line"></i> Dégeler le compte';
-        freezeBtn.className = 'admin-btn admin-btn-success';
+        freezeBtn.innerHTML    = '<i class="ri-lock-unlock-line"></i> Dégeler le compte';
+        freezeBtn.className    = 'admin-btn admin-btn-success';
         frozenStatus.innerHTML = '<span class="badge badge-danger">Compte gelé</span>';
       } else {
-        freezeBtn.innerHTML = '<i class="ri-lock-line"></i> Geler le compte';
-        freezeBtn.className = 'admin-btn admin-btn-warning';
+        freezeBtn.innerHTML    = '<i class="ri-lock-line"></i> Geler le compte';
+        freezeBtn.className    = 'admin-btn admin-btn-warning';
         frozenStatus.innerHTML = '';
       }
-
       showAdminAlert('modalSuccess', `Compte ${newState ? 'gelé' : 'dégelé'} avec succès.`, 'success');
       renderUsers(allUsers);
     }
 
     async function updateBalances() {
       if (!selectedUser) return;
+      const deposit    = parseFloat(document.getElementById('newDepositBalance').value);
       const unique     = parseFloat(document.getElementById('newUniqueBalance').value);
       const withdrawal = parseFloat(document.getElementById('newWithdrawalBalance').value);
 
-      if (isNaN(unique) || isNaN(withdrawal)) {
+      if (isNaN(deposit) || isNaN(unique) || isNaN(withdrawal)) {
         showAdminAlert('modalAlert', 'Veuillez entrer des montants valides.');
         return;
       }
@@ -532,23 +533,22 @@
       const { error } = await db
         .from('wallets')
         .update({
+          deposit_balance:    deposit,
           unique_balance:     unique,
           withdrawal_balance: withdrawal,
           updated_at:         new Date().toISOString()
         })
         .eq('user_id', selectedUser.id);
 
-      if (error) {
-        showAdminAlert('modalAlert', 'Erreur lors de la modification.');
-        return;
-      }
+      if (error) { showAdminAlert('modalAlert', 'Erreur lors de la modification.'); return; }
 
+      // Mettre à jour l'affichage tab portefeuilles
+      document.getElementById('dWalletDeposit').textContent    = formatMoney(deposit);
       document.getElementById('dWalletUnique').textContent     = formatMoney(unique);
       document.getElementById('dWalletWithdrawal').textContent = formatMoney(withdrawal);
       showAdminAlert('modalSuccess', 'Soldes mis à jour avec succès.', 'success');
     }
 
-    // Fermer modal en cliquant l'overlay
     document.getElementById('userModal').addEventListener('click', function(e) {
       if (e.target === this) closeUserModal();
     });
