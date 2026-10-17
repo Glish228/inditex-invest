@@ -40,12 +40,12 @@
 
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="../supabase.js"></script>
   <script src="../app.js"></script>
   <script>
-    // Rediriger si déjà connecté
-    if (sessionStorage.getItem('inditex_admin')) {
+    // ✅ localStorage au lieu de sessionStorage
+    if (localStorage.getItem('inditex_admin')) {
       window.location.href = 'index.html';
     }
 
@@ -70,8 +70,7 @@
       btn.disabled  = true;
 
       const { data: admin, error } = await db
-        .from('admins')
-        .select('*')
+        .from('admins').select('*')
         .eq('username', username)
         .eq('password', password)
         .maybeSingle();
@@ -84,7 +83,8 @@
         return;
       }
 
-      sessionStorage.setItem('inditex_admin', JSON.stringify(admin));
+      // ✅ localStorage au lieu de sessionStorage
+      localStorage.setItem('inditex_admin', JSON.stringify(admin));
       window.location.href = 'index.html';
     }
   </script>

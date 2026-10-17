@@ -1,12 +1,12 @@
 // ─── AUTH ADMIN ───────────────────────────────────────────
 function checkAdminAuth() {
-  const admin = sessionStorage.getItem('inditex_admin');
+  const admin = localStorage.getItem('inditex_admin');
   if (!admin) window.location.href = 'login.html';
 }
 
 function adminLogout() {
   if (confirm('Voulez-vous vous déconnecter ?')) {
-    sessionStorage.removeItem('inditex_admin');
+    localStorage.removeItem('inditex_admin');
     window.location.href = 'login.html';
   }
 }
@@ -15,7 +15,6 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
 
-// Fermer sidebar en cliquant ailleurs sur mobile
 document.addEventListener('click', function(e) {
   const sidebar = document.getElementById('sidebar');
   const menuBtn = document.querySelector('.menu-btn');
