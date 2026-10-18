@@ -79,7 +79,7 @@ function redirectToDeposit(amount) {
 
 async function confirmDeposit(user_id, transactionId, amount) {
   try {
-    const res  = await fetch(`https://bkapay.com/api/inline-pay/status/${transactionId}`);
+    const res = await fetch(`/functions/verify-deposit?transactionId=${transactionId}`);
     const data = await res.json();
 
     if (data.status !== 'completed') return { error: 'Paiement non confirmé.' };
