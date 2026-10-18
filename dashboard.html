@@ -10,7 +10,6 @@
 </head>
 <body>
 
-  <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-logo">INDI<span>TEX</span></div>
     <div class="topbar-actions">
@@ -25,7 +24,6 @@
     </div>
   </div>
 
-  <!-- PAGE -->
   <div class="page">
     <div class="container">
 
@@ -36,25 +34,18 @@
         <div id="accountStatus" style="margin-top:6px;"></div>
       </div>
 
-      <!-- 3 Portefeuilles -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <!-- 2 Portefeuilles -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
         <div class="wallet-card">
           <div class="wallet-label">💳 Dépôt</div>
           <div class="wallet-amount" id="depositBalance">0 F</div>
-          <div class="wallet-sub">Solde disponible</div>
+          <div class="wallet-sub">Pour acheter un plan</div>
         </div>
-        <div class="wallet-card secondary">
-          <div class="wallet-label">💰 Unique</div>
-          <div class="wallet-amount" id="uniqueBalance">0 F</div>
-          <div class="wallet-sub">Gains plan fixe</div>
-        </div>
-      </div>
-      <div style="margin-bottom:20px;">
         <div class="wallet-card" style="background:linear-gradient(135deg,#1a3a2a,#0d2018);
           border-color:var(--success);">
           <div class="wallet-label">🏦 Retrait</div>
           <div class="wallet-amount" id="withdrawalBalance">0 F</div>
-          <div class="wallet-sub">Bonus, commissions & plans courts</div>
+          <div class="wallet-sub">Gains & commissions</div>
         </div>
       </div>
 
@@ -99,7 +90,8 @@
             <span class="badge badge-success">Actif</span>
           </div>
           <div style="font-size:13px; color:var(--gray); margin-bottom:4px;">
-            Gain journalier : <strong style="color:var(--white);">300 F</strong>
+            Gain journalier : <strong style="color:var(--white);">200 F</strong>
+            → versé sur portefeuille retrait
           </div>
           <div style="font-size:13px; color:var(--gray); margin-bottom:12px;">
             Fin le : <strong style="color:var(--white);" id="fixedEndDate">...</strong>
@@ -148,7 +140,7 @@
         </div>
       </div>
 
-      <!-- Lien parrainage -->
+      <!-- Parrainage -->
       <div style="margin-top:20px;">
         <div class="section-title">Mon lien de parrainage</div>
         <div class="referral-box">
@@ -178,7 +170,6 @@
     </div>
   </div>
 
-  <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <a href="dashboard.html" class="nav-item active">
       <i class="ri-home-5-line"></i><span>Accueil</span>
@@ -219,20 +210,18 @@
         ? '<span class="badge badge-success">✓ Compte actif</span>'
         : '<span class="badge badge-warning">⚠ Compte non activé</span>';
 
-      // 3 portefeuilles
+      // 2 portefeuilles
       const wallet = await getWallet(user.id);
       if (wallet) {
         document.getElementById('depositBalance').textContent    = formatMoney(wallet.deposit_balance);
-        document.getElementById('uniqueBalance').textContent     = formatMoney(wallet.unique_balance);
         document.getElementById('withdrawalBalance').textContent = formatMoney(wallet.withdrawal_balance);
       }
 
       // Plans
-      const plans     = await getUserPlans(user.id);
-      const fixedPlan = plans.find(p => p.type === 'fixed' && p.status === 'active');
-      const shortPlans= plans.filter(p => p.type === 'short' && p.status === 'active');
+      const plans      = await getUserPlans(user.id);
+      const fixedPlan  = plans.find(p => p.type === 'fixed'  && p.status === 'active');
+      const shortPlans = plans.filter(p => p.type === 'short' && p.status === 'active');
 
-      // Plan fixe
       if (fixedPlan) {
         document.getElementById('fixedPlanSection').style.display = 'block';
         document.getElementById('noFixedPlan').style.display      = 'none';
@@ -249,7 +238,6 @@
         document.getElementById('noFixedPlan').style.display      = 'block';
       }
 
-      // Plans courts
       if (shortPlans.length > 0) {
         document.getElementById('shortPlansSection').style.display = 'block';
         document.getElementById('shortPlansList').innerHTML = shortPlans.map(p => {
@@ -304,35 +292,14 @@
         }).join('');
       }
 
-      // Parrainage
       document.getElementById('myRefCode').textContent = user.referral_code;
       document.getElementById('myRefLink').textContent =
         `${window.location.origin}/register.html?ref=${user.referral_code}`;
 
-      // Badge support
       const msgs   = await getSupportMessages(user.id);
       const unread = msgs.filter(m => m.sender === 'admin' && !m.is_read);
       if (unread.length > 0)
         document.getElementById('supportBadge').style.display = 'block';
-
-      // Créditer plans courts terminés
-      await creditCompletedPlans();
-    }
-
-    async function creditCompletedPlans() {
-      const { data: completed } = await db
-        .from('user_plans').select('*')
-        .eq('user_id', user.id).eq('type', 'short').eq('status', 'active')
-        .lte('end_date', new Date().toISOString());
-
-      if (!completed || completed.length === 0) return;
-
-      for (const plan of completed) {
-        await updateWallet(user.id, 'withdrawal_balance', plan.gain_total);
-        await logTransaction(user.id, 'gain_short', plan.gain_total, 'withdrawal', 'completed', 'Gain plan court terminé');
-        await db.from('user_plans').update({ status: 'completed' }).eq('id', plan.id);
-      }
-      loadDashboard();
     }
 
     function copyRef() {
