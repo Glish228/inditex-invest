@@ -71,18 +71,11 @@
   const transactionId = params.get('transactionId');
   const amount = params.get('amount');
   
-  // ✅ Échec immédiat — pas d'appel API, juste on trace et on affiche
+  // Échec immédiat — affichage direct sans appel API
   if (status !== 'success') {
     show('Error');
     document.getElementById('errorMsg').textContent =
       'Le paiement a été annulé ou a échoué.';
-    // Trace en arrière-plan sans bloquer l'affichage
-    db.from('deposits').insert({
-      user_id: user.id,
-      amount: amount ? Number(amount) : 0,
-      payment_ref: transactionId || null,
-      status: 'failed'
-    });
     return;
   }
   
@@ -93,7 +86,7 @@
     return;
   }
   
-  // Vérification côté serveur uniquement si status=success
+  // Vérification uniquement si status=success
   const result = await confirmDeposit(user.id, transactionId, Number(amount));
   
   if (result.already) {
