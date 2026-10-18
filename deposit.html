@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INDITEX - Déposer V2</title>
+  <title>INDITEX - Déposer</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
-  <!-- ✅ Script BKApay Inline -->
-  <script src="https://bkapay.com/bkapay-inline.js"></script>
 </head>
 <body>
 
@@ -23,32 +21,28 @@
   <div class="page">
     <div class="container">
 
-      <!-- Solde dépôt -->
       <div class="wallet-card" style="margin-bottom:24px;">
         <div class="wallet-label">💳 Portefeuille Dépôt</div>
         <div class="wallet-amount" id="depositBalance">0 F</div>
         <div class="wallet-sub">Solde actuel</div>
       </div>
 
-      <!-- Info -->
       <div class="alert alert-info show" style="margin-bottom:24px;">
         <i class="ri-information-line"></i>
-        La fenêtre de paiement s'ouvre directement ici.
-        Votre portefeuille sera crédité automatiquement après confirmation.
+        Vous serez redirigé vers BKApay pour effectuer le paiement.
+        Votre portefeuille sera crédité automatiquement au retour.
       </div>
 
-      <!-- Montants rapides -->
       <div class="section-title">Montant à déposer</div>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
-        <button class="quick-amount" onclick="setAmount(2000)">2 000 F</button>
-        <button class="quick-amount" onclick="setAmount(5000)">5 000 F</button>
-        <button class="quick-amount" onclick="setAmount(10000)">10 000 F</button>
-        <button class="quick-amount" onclick="setAmount(20000)">20 000 F</button>
-        <button class="quick-amount" onclick="setAmount(50000)">50 000 F</button>
-        <button class="quick-amount" onclick="setAmount(100000)">100 000 F</button>
+        <button class="quick-amount" onclick="setAmount(2000, this)">2 000 F</button>
+        <button class="quick-amount" onclick="setAmount(5000, this)">5 000 F</button>
+        <button class="quick-amount" onclick="setAmount(10000, this)">10 000 F</button>
+        <button class="quick-amount" onclick="setAmount(20000, this)">20 000 F</button>
+        <button class="quick-amount" onclick="setAmount(50000, this)">50 000 F</button>
+        <button class="quick-amount" onclick="setAmount(100000, this)">100 000 F</button>
       </div>
 
-      <!-- Saisie libre -->
       <div class="form-group">
         <label class="form-label">Ou saisissez un montant</label>
         <input type="number" class="form-input" id="amountInput"
@@ -59,7 +53,6 @@
         </div>
       </div>
 
-      <!-- Récap -->
       <div id="recap" style="display:none; background:var(--dark2);
         border:1px solid var(--border); border-radius:var(--radius);
         padding:16px; margin-bottom:20px;">
@@ -74,8 +67,7 @@
         </div>
       </div>
 
-      <div class="alert alert-danger"  id="alertError"></div>
-      <div class="alert alert-success" id="alertSuccess"></div>
+      <div class="alert alert-danger" id="alertError"></div>
 
       <button class="btn btn-primary" id="payBtn"
         onclick="startPayment()"
@@ -83,7 +75,6 @@
         <i class="ri-secure-payment-line"></i> Payer avec BKApay
       </button>
 
-      <!-- Opérateurs -->
       <div style="text-align:center; margin-top:20px;">
         <p style="font-size:11px; color:var(--gray); margin-bottom:10px;">
           Opérateurs acceptés
@@ -121,6 +112,7 @@
     if (!user) window.location.href = 'login.html';
 
     let currentAmount = 0;
+    const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
 
     async function init() {
       const wallet = await getWallet(user.id);
@@ -130,12 +122,12 @@
       }
     }
 
-    function setAmount(amount) {
+    function setAmount(amount, btn) {
       currentAmount = amount;
       document.getElementById('amountInput').value = amount;
       document.querySelectorAll('.quick-amount').forEach(b =>
         b.classList.remove('selected'));
-      event.target.classList.add('selected');
+      btn.classList.add('selected');
       updateRecap();
     }
 
@@ -150,11 +142,9 @@
       const recap  = document.getElementById('recap');
       const payBtn = document.getElementById('payBtn');
       document.getElementById('alertError').classList.remove('show');
-
       if (currentAmount >= 200) {
         recap.style.display = 'block';
-        document.getElementById('recapAmount').textContent =
-          formatMoney(currentAmount);
+        document.getElementById('recapAmount').textContent = formatMoney(currentAmount);
         payBtn.disabled = false;
       } else {
         recap.style.display = 'none';
@@ -163,95 +153,16 @@
     }
 
     function startPayment() {
-      const errEl  = document.getElementById('alertError');
-      const sucEl  = document.getElementById('alertSuccess');
-      const payBtn = document.getElementById('payBtn');
-
-      errEl.classList.remove('show');
-      sucEl.classList.remove('show');
-
       if (!currentAmount || currentAmount < 200) {
-        errEl.textContent = 'Montant minimum : 200 F.';
-        errEl.classList.add('show');
+        document.getElementById('alertError').textContent = 'Montant minimum : 200 F.';
+        document.getElementById('alertError').classList.add('show');
         return;
       }
-
-      // ✅ Ouverture du modal BKApay inline
-      BKApay.checkout({
-        key:         'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac',
-        amount:      currentAmount,
-        description: 'Dépôt Inditex|' + user.id,
-        orderId:     user.id + '_' + Date.now(),
-        customer: {
-          name:  user.full_name,
-          phone: user.country_code + user.phone
-        },
-
-        onSuccess: async function(response) {
-          payBtn.innerHTML = '<span class="loader"></span>';
-          payBtn.disabled  = true;
-
-          // Vérification côté serveur via proxy Cloudflare
-          const result = await confirmDeposit(
-            user.id,
-            response.transactionId,
-            response.amount
-          );
-
-          payBtn.innerHTML = '<i class="ri-secure-payment-line"></i> Payer avec BKApay';
-          payBtn.disabled  = false;
-
-          if (result.already) {
-            sucEl.textContent = 'Dépôt déjà enregistré.';
-            sucEl.classList.add('show');
-            return;
-          }
-
-          if (result.error) {
-            errEl.textContent = result.error;
-            errEl.classList.add('show');
-            return;
-          }
-
-          // ✅ Succès — mettre à jour le solde affiché
-          sucEl.textContent = `${formatMoney(currentAmount)} ajoutés à votre portefeuille !`;
-          sucEl.classList.add('show');
-
-          // Réinitialiser
-          currentAmount = 0;
-          document.getElementById('amountInput').value = '';
-          document.getElementById('recap').style.display = 'none';
-          document.querySelectorAll('.quick-amount').forEach(b =>
-            b.classList.remove('selected'));
-          payBtn.disabled = true;
-
-          // Rafraîchir le solde
-          const wallet = await getWallet(user.id);
-          if (wallet) {
-            document.getElementById('depositBalance').textContent =
-              formatMoney(wallet.deposit_balance);
-          }
-
-          // Rediriger vers dashboard après 2 secondes
-          setTimeout(() => {
-            window.location.href = 'dashboard.html';
-          }, 2000);
-        },
-        
-
-        onError: function(error) {
-          errEl.textContent = error.status === 'expired'
-            ? 'Délai expiré. Veuillez réessayer.'
-            : 'Paiement échoué : ' + (error.message || 'erreur inconnue');
-          errEl.classList.add('show');
-        },
-        
-
-        onClose: function(data) {
-          // Client a fermé manuellement — rien à faire
-          console.log('Paiement annulé par le client');
-        }
-      });
+      // ✅ Passer user_id dans description pour le webhook
+      const callback = encodeURIComponent(window.location.origin + '/deposit-callback.html');
+      const desc     = encodeURIComponent('Dépôt Inditex|' + user.id);
+      window.location.href =
+        `https://bkapay.com/api-pay/${BKA_PUBLIC_KEY}?amount=${currentAmount}&description=${desc}&callback=${callback}`;
     }
 
     init();

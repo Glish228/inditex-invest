@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDITEX - Confirmation dépôt</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+  </div>
+
+  <div class="page">
+    <div class="container" style="text-align:center; padding-top:60px;">
+
+      <div id="stateLoading">
+        <span class="loader" style="width:48px; height:48px; border-width:4px;"></span>
+        <p style="margin-top:20px; color:var(--gray);">Vérification du paiement...</p>
+      </div>
+
+      <div id="stateSuccess" style="display:none;">
+        <i class="ri-checkbox-circle-fill" style="font-size:64px; color:var(--success);"></i>
+        <h2 style="margin-top:16px;">Dépôt confirmé !</h2>
+        <p style="color:var(--gray); margin:8px 0 24px;" id="successMsg"></p>
+        <a href="dashboard.html" class="btn btn-primary" style="display:inline-flex;">
+          <i class="ri-home-5-line"></i> Retour à l'accueil
+        </a>
+      </div>
+
+      <div id="stateError" style="display:none;">
+        <i class="ri-close-circle-fill" style="font-size:64px; color:var(--danger);"></i>
+        <h2 style="margin-top:16px;">Échec du dépôt</h2>
+        <p style="color:var(--gray); margin:8px 0 24px;" id="errorMsg"></p>
+        <a href="deposit.html" class="btn btn-primary" style="display:inline-flex;">
+          <i class="ri-arrow-left-line"></i> Réessayer
+        </a>
+      </div>
+
+      <div id="statePending" style="display:none;">
+        <i class="ri-time-line" style="font-size:64px; color:var(--warning);"></i>
+        <h2 style="margin-top:16px;">Paiement en attente</h2>
+        <p style="color:var(--gray); margin:8px 0 24px;">
+          Votre paiement est en cours de traitement.
+        </p>
+        <a href="dashboard.html" class="btn btn-outline" style="display:inline-flex;">
+          <i class="ri-home-5-line"></i> Retour à l'accueil
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    const user = getSession();
+    if (!user) window.location.href = 'login.html';
+
+    function show(state) {
+      ['Loading','Success','Error','Pending'].forEach(s =>
+        document.getElementById('state' + s).style.display =
+          s === state ? 'block' : 'none');
+    }
+
+    async function handleCallback() {
+      const params        = new URLSearchParams(window.location.search);
+      const status        = params.get('status');
+      const transactionId = params.get('transactionId');
+      const amount        = params.get('amount');
+
+      // Échec immédiat
+      if (status !== 'success') {
+        show('Error');
+        document.getElementById('errorMsg').textContent =
+          'Le paiement a été annulé ou a échoué.';
+        return;
+      }
+
+      if (!transactionId || !amount) {
+        show('Error');
+        document.getElementById('errorMsg').textContent =
+          'Paramètres de retour invalides.';
+        return;
+      }
+
+      // ✅ Vérification via proxy Cloudflare — plus de CORS
+      const result = await confirmDeposit(user.id, transactionId, Number(amount));
+
+      if (result.already) {
+        show('Success');
+        document.getElementById('successMsg').textContent =
+          `Dépôt de ${Number(amount).toLocaleString('fr-FR')} F déjà enregistré.`;
+        return;
+      }
+
+      if (result.error) {
+        if (result.error.includes('non confirmé') || result.error.includes('attente')) {
+          show('Pending');
+        } else {
+          show('Error');
+          document.getElementById('errorMsg').textContent = result.error;
+        }
+        return;
+      }
+
+      show('Success');
+      document.getElementById('successMsg').textContent =
+        `${Number(amount).toLocaleString('fr-FR')} F ajoutés à votre portefeuille de dépôt.`;
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>
