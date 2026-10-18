@@ -71,8 +71,10 @@ async function updateWallet(user_id, field, amount) {
 const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
 
 function redirectToDeposit(amount) {
+  const user = getSession();
   const callback = encodeURIComponent(window.location.origin + '/deposit-callback.html');
-  const desc     = encodeURIComponent('Dépôt Inditex Invest');
+  // ✅ On passe le user_id dans la description pour le webhook
+  const desc = encodeURIComponent('Dépôt Inditex|' + user.id);
   window.location.href =
     `https://bkapay.com/api-pay/${BKA_PUBLIC_KEY}?amount=${amount}&description=${desc}&callback=${callback}`;
 }
