@@ -7,21 +7,23 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+  <!-- ✅ Script BKApay Inline -->
+  <script src="https://bkapay.com/bkapay-inline.js"></script>
 </head>
 <body>
 
-  <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-logo">INDI<span>TEX</span></div>
     <a href="dashboard.html" style="color:var(--gray); font-size:22px;">
       <i class="ri-arrow-left-line"></i>
     </a>
+    <div class="topbar-logo">INDI<span>TEX</span></div>
+    <div style="width:22px;"></div>
   </div>
 
   <div class="page">
     <div class="container">
 
-      <!-- Solde dépôt actuel -->
+      <!-- Solde dépôt -->
       <div class="wallet-card" style="margin-bottom:24px;">
         <div class="wallet-label">💳 Portefeuille Dépôt</div>
         <div class="wallet-amount" id="depositBalance">0 F</div>
@@ -31,8 +33,8 @@
       <!-- Info -->
       <div class="alert alert-info show" style="margin-bottom:24px;">
         <i class="ri-information-line"></i>
-        Vous serez redirigé vers la page de paiement sécurisée BKApay.
-        Après paiement, votre portefeuille de dépôt sera crédité automatiquement.
+        La fenêtre de paiement s'ouvre directement ici.
+        Votre portefeuille sera crédité automatiquement après confirmation.
       </div>
 
       <!-- Montants rapides -->
@@ -63,7 +65,8 @@
         padding:16px; margin-bottom:20px;">
         <div class="d-flex align-center justify-between mb-8">
           <span style="color:var(--gray); font-size:13px;">Montant à payer</span>
-          <span style="font-weight:800; color:var(--primary); font-size:16px;" id="recapAmount">-</span>
+          <span style="font-weight:800; color:var(--primary); font-size:16px;"
+            id="recapAmount">-</span>
         </div>
         <div class="d-flex align-center justify-between">
           <span style="color:var(--gray); font-size:13px;">Crédité sur</span>
@@ -71,7 +74,8 @@
         </div>
       </div>
 
-      <div class="alert alert-danger" id="alertError"></div>
+      <div class="alert alert-danger"  id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
 
       <button class="btn btn-primary" id="payBtn"
         onclick="startPayment()"
@@ -79,7 +83,7 @@
         <i class="ri-secure-payment-line"></i> Payer avec BKApay
       </button>
 
-      <!-- Logos opérateurs -->
+      <!-- Opérateurs -->
       <div style="text-align:center; margin-top:20px;">
         <p style="font-size:11px; color:var(--gray); margin-bottom:10px;">
           Opérateurs acceptés
@@ -103,8 +107,7 @@
       color: var(--white); font-size: 13px; font-weight: 600;
       cursor: pointer; transition: all 0.2s; width: 100%;
     }
-    .quick-amount:active,
-    .quick-amount.selected {
+    .quick-amount:active, .quick-amount.selected {
       background: rgba(108,60,255,0.15);
       border-color: var(--primary); color: var(--primary);
     }
@@ -112,6 +115,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="supabase.js"></script>
+  <script src="app.js"></script>
   <script>
     const user = getSession();
     if (!user) window.location.href = 'login.html';
@@ -121,34 +125,36 @@
     async function init() {
       const wallet = await getWallet(user.id);
       if (wallet) {
-        document.getElementById('depositBalance').textContent = formatMoney(wallet.deposit_balance);
+        document.getElementById('depositBalance').textContent =
+          formatMoney(wallet.deposit_balance);
       }
     }
 
     function setAmount(amount) {
       currentAmount = amount;
       document.getElementById('amountInput').value = amount;
-      document.querySelectorAll('.quick-amount').forEach(btn => btn.classList.remove('selected'));
+      document.querySelectorAll('.quick-amount').forEach(b =>
+        b.classList.remove('selected'));
       event.target.classList.add('selected');
       updateRecap();
     }
 
     function onAmountInput() {
       currentAmount = Number(document.getElementById('amountInput').value);
-      document.querySelectorAll('.quick-amount').forEach(btn => btn.classList.remove('selected'));
+      document.querySelectorAll('.quick-amount').forEach(b =>
+        b.classList.remove('selected'));
       updateRecap();
     }
 
     function updateRecap() {
-      const recap   = document.getElementById('recap');
-      const payBtn  = document.getElementById('payBtn');
-      const alertEl = document.getElementById('alertError');
-
-      alertEl.classList.remove('show');
+      const recap  = document.getElementById('recap');
+      const payBtn = document.getElementById('payBtn');
+      document.getElementById('alertError').classList.remove('show');
 
       if (currentAmount >= 200) {
         recap.style.display = 'block';
-        document.getElementById('recapAmount').textContent = formatMoney(currentAmount);
+        document.getElementById('recapAmount').textContent =
+          formatMoney(currentAmount);
         payBtn.disabled = false;
       } else {
         recap.style.display = 'none';
@@ -157,15 +163,93 @@
     }
 
     function startPayment() {
-      const alertEl = document.getElementById('alertError');
+      const errEl  = document.getElementById('alertError');
+      const sucEl  = document.getElementById('alertSuccess');
+      const payBtn = document.getElementById('payBtn');
+
+      errEl.classList.remove('show');
+      sucEl.classList.remove('show');
+
       if (!currentAmount || currentAmount < 200) {
-        alertEl.textContent = 'Montant minimum : 200 F.';
-        alertEl.classList.add('show');
+        errEl.textContent = 'Montant minimum : 200 F.';
+        errEl.classList.add('show');
         return;
       }
-      // Sauvegarder le montant en session pour vérification au retour
-      sessionStorage.setItem('deposit_amount', currentAmount);
-      redirectToDeposit(currentAmount);
+
+      // ✅ Ouverture du modal BKApay inline
+      BKApay.checkout({
+        key:         'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac',
+        amount:      currentAmount,
+        description: 'Dépôt Inditex|' + user.id,
+        orderId:     user.id + '_' + Date.now(),
+        customer: {
+          name:  user.full_name,
+          phone: user.country_code + user.phone
+        },
+
+        onSuccess: async function(response) {
+          payBtn.innerHTML = '<span class="loader"></span>';
+          payBtn.disabled  = true;
+
+          // Vérification côté serveur via proxy Cloudflare
+          const result = await confirmDeposit(
+            user.id,
+            response.transactionId,
+            response.amount
+          );
+
+          payBtn.innerHTML = '<i class="ri-secure-payment-line"></i> Payer avec BKApay';
+          payBtn.disabled  = false;
+
+          if (result.already) {
+            sucEl.textContent = 'Dépôt déjà enregistré.';
+            sucEl.classList.add('show');
+            return;
+          }
+
+          if (result.error) {
+            errEl.textContent = result.error;
+            errEl.classList.add('show');
+            return;
+          }
+
+          // ✅ Succès — mettre à jour le solde affiché
+          sucEl.textContent = `${formatMoney(currentAmount)} ajoutés à votre portefeuille !`;
+          sucEl.classList.add('show');
+
+          // Réinitialiser
+          currentAmount = 0;
+          document.getElementById('amountInput').value = '';
+          document.getElementById('recap').style.display = 'none';
+          document.querySelectorAll('.quick-amount').forEach(b =>
+            b.classList.remove('selected'));
+          payBtn.disabled = true;
+
+          // Rafraîchir le solde
+          const wallet = await getWallet(user.id);
+          if (wallet) {
+            document.getElementById('depositBalance').textContent =
+              formatMoney(wallet.deposit_balance);
+          }
+
+          // Rediriger vers dashboard après 2 secondes
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 2000);
+        },
+
+        onError: function(error) {
+          errEl.textContent = error.status === 'expired'
+            ? 'Délai expiré. Veuillez réessayer.'
+            : 'Paiement échoué : ' + (error.message || 'erreur inconnue');
+          errEl.classList.add('show');
+        },
+
+        onClose: function(data) {
+          // Client a fermé manuellement — rien à faire
+          console.log('Paiement annulé par le client');
+        }
+      });
     }
 
     init();
