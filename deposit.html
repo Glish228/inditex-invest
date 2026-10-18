@@ -7,6 +7,18 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+  <style>
+    .quick-amount {
+      background: var(--dark2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 8px;
+      color: var(--white); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; width: 100%;
+    }
+    .quick-amount.selected {
+      background: rgba(108,60,255,0.15);
+      border-color: var(--primary); color: var(--primary);
+    }
+  </style>
 </head>
 <body>
 
@@ -35,12 +47,12 @@
 
       <div class="section-title">Montant à déposer</div>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
-        <button class="quick-amount" onclick="setAmount(2000, this)">2 000 F</button>
-        <button class="quick-amount" onclick="setAmount(5000, this)">5 000 F</button>
-        <button class="quick-amount" onclick="setAmount(10000, this)">10 000 F</button>
-        <button class="quick-amount" onclick="setAmount(20000, this)">20 000 F</button>
-        <button class="quick-amount" onclick="setAmount(50000, this)">50 000 F</button>
-        <button class="quick-amount" onclick="setAmount(100000, this)">100 000 F</button>
+        <button class="quick-amount" id="btn2000"   onclick="setAmount(2000)">2 000 F</button>
+        <button class="quick-amount" id="btn5000"   onclick="setAmount(5000)">5 000 F</button>
+        <button class="quick-amount" id="btn10000"  onclick="setAmount(10000)">10 000 F</button>
+        <button class="quick-amount" id="btn20000"  onclick="setAmount(20000)">20 000 F</button>
+        <button class="quick-amount" id="btn50000"  onclick="setAmount(50000)">50 000 F</button>
+        <button class="quick-amount" id="btn100000" onclick="setAmount(100000)">100 000 F</button>
       </div>
 
       <div class="form-group">
@@ -91,19 +103,6 @@
     </div>
   </div>
 
-  <style>
-    .quick-amount {
-      background: var(--dark2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 12px 8px;
-      color: var(--white); font-size: 13px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s; width: 100%;
-    }
-    .quick-amount:active, .quick-amount.selected {
-      background: rgba(108,60,255,0.15);
-      border-color: var(--primary); color: var(--primary);
-    }
-  </style>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
   <script src="supabase.js"></script>
   <script src="app.js"></script>
@@ -111,8 +110,9 @@
     const user = getSession();
     if (!user) window.location.href = 'login.html';
 
-    let currentAmount = 0;
     const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
+    const AMOUNTS        = [2000, 5000, 10000, 20000, 50000, 100000];
+    let currentAmount    = 0;
 
     async function init() {
       const wallet = await getWallet(user.id);
@@ -122,19 +122,32 @@
       }
     }
 
-    function setAmount(amount, btn) {
+    function setAmount(amount) {
       currentAmount = amount;
       document.getElementById('amountInput').value = amount;
-      document.querySelectorAll('.quick-amount').forEach(b =>
-        b.classList.remove('selected'));
-      btn.classList.add('selected');
+      // Désélectionner tous les boutons
+      AMOUNTS.forEach(a => {
+        const btn = document.getElementById('btn' + a);
+        if (btn) btn.classList.remove('selected');
+      });
+      // Sélectionner le bouton cliqué
+      const selected = document.getElementById('btn' + amount);
+      if (selected) selected.classList.add('selected');
       updateRecap();
     }
 
     function onAmountInput() {
       currentAmount = Number(document.getElementById('amountInput').value);
-      document.querySelectorAll('.quick-amount').forEach(b =>
-        b.classList.remove('selected'));
+      // Désélectionner tous les boutons
+      AMOUNTS.forEach(a => {
+        const btn = document.getElementById('btn' + a);
+        if (btn) btn.classList.remove('selected');
+      });
+      // Sélectionner si correspond à un montant prédéfini
+      if (AMOUNTS.includes(currentAmount)) {
+        const btn = document.getElementById('btn' + currentAmount);
+        if (btn) btn.classList.add('selected');
+      }
       updateRecap();
     }
 
@@ -142,9 +155,11 @@
       const recap  = document.getElementById('recap');
       const payBtn = document.getElementById('payBtn');
       document.getElementById('alertError').classList.remove('show');
+
       if (currentAmount >= 200) {
         recap.style.display = 'block';
-        document.getElementById('recapAmount').textContent = formatMoney(currentAmount);
+        document.getElementById('recapAmount').textContent =
+          formatMoney(currentAmount);
         payBtn.disabled = false;
       } else {
         recap.style.display = 'none';
@@ -154,15 +169,20 @@
 
     function startPayment() {
       if (!currentAmount || currentAmount < 200) {
-        document.getElementById('alertError').textContent = 'Montant minimum : 200 F.';
+        document.getElementById('alertError').textContent =
+          'Montant minimum : 200 F.';
         document.getElementById('alertError').classList.add('show');
         return;
       }
-      // ✅ Passer user_id dans description pour le webhook
-      const callback = encodeURIComponent(window.location.origin + '/deposit-callback.html');
-      const desc     = encodeURIComponent('Dépôt Inditex|' + user.id);
+      const callback = encodeURIComponent(
+        window.location.origin + '/deposit-callback.html'
+      );
+      const desc = encodeURIComponent('Dépôt Inditex|' + user.id);
       window.location.href =
-        `https://bkapay.com/api-pay/${BKA_PUBLIC_KEY}?amount=${currentAmount}&description=${desc}&callback=${callback}`;
+        'https://bkapay.com/api-pay/' + BKA_PUBLIC_KEY +
+        '?amount=' + currentAmount +
+        '&description=' + desc +
+        '&callback=' + callback;
     }
 
     init();
