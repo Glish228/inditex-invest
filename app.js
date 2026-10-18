@@ -21,9 +21,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Pages privées
   const privatePages = [
-    'dashboard', 'products', 'withdraw', 'deposit', 'deposit-callback',
-    'team', 'profile', 'support', 'history'
-  ];
+  'dashboard', 'products', 'withdraw',
+  'team', 'profile', 'support', 'history'
+];
 
   if (privatePages.includes(page)) {
     const user = getSession();
