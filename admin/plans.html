@@ -14,11 +14,11 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
     <nav class="sidebar-nav">
-      <a href="index.html" class="sidebar-item"><i class="ri-dashboard-line"></i> Dashboard</a>
-      <a href="users.html" class="sidebar-item"><i class="ri-group-line"></i> Utilisateurs</a>
+      <a href="index.html"       class="sidebar-item"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="users.html"       class="sidebar-item"><i class="ri-group-line"></i> Utilisateurs</a>
       <a href="withdrawals.html" class="sidebar-item"><i class="ri-bank-card-line"></i> Retraits</a>
-      <a href="deposits.html" class="sidebar-item"><i class="ri-money-dollar-circle-line"></i> Dépôts</a>
-      <a href="support.html" class="sidebar-item">
+      <a href="deposits.html"    class="sidebar-item"><i class="ri-money-dollar-circle-line"></i> Dépôts</a>
+      <a href="support.html"     class="sidebar-item">
         <i class="ri-customer-service-2-line"></i> Support
         <span class="sidebar-badge" id="supportCount" style="display:none;"></span>
       </a>
@@ -42,72 +42,49 @@
 
     <div class="admin-content">
 
-      <!-- Plan Fixe -->
-      <div class="admin-card" style="margin-bottom:20px;">
-        <div class="admin-card-title">
-          <i class="ri-star-line"></i> Plan Fixe
+      <!-- Règles globales -->
+      <div class="admin-card" style="margin-bottom:20px; display:flex; gap:24px;
+        flex-wrap:wrap; align-items:center;">
+        <div style="text-align:center;">
+          <div style="font-size:22px; font-weight:800; color:var(--primary);">10%</div>
+          <div style="font-size:11px; color:var(--gray);">gain / jour</div>
         </div>
-        <div style="overflow-x:auto;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Prix</th>
-                <th>Durée</th>
-                <th>Gain/jour</th>
-                <th>Stock</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="fixedPlanTable">
-              <tr><td colspan="7" class="admin-empty">Chargement...</td></tr>
-            </tbody>
-          </table>
+        <div style="text-align:center;">
+          <div style="font-size:22px; font-weight:800; color:var(--success);">60 jours</div>
+          <div style="font-size:11px; color:var(--gray);">durée fixe</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:22px; font-weight:800; color:var(--warning);">500 F</div>
+          <div style="font-size:11px; color:var(--gray);">bonus 1er plan</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:22px; font-weight:800; color:var(--danger);">12%</div>
+          <div style="font-size:11px; color:var(--gray);">frais retrait</div>
         </div>
       </div>
 
-      <!-- Plans Courts -->
-      <div class="admin-card" style="margin-bottom:20px;">
+      <!-- Table des 9 plans -->
+      <div class="admin-card">
         <div class="admin-card-title">
-          <i class="ri-rocket-line"></i> Plans à Courte Durée
+          <i class="ri-store-2-line"></i> Les 9 Plans d'investissement
         </div>
         <div style="overflow-x:auto;">
           <table class="admin-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Nom</th>
-                <th>Prix</th>
+                <th>Montant</th>
+                <th>Gain/jour</th>
+                <th>Total 60j</th>
                 <th>Stock</th>
                 <th>Max/user</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="shortPlansTable">
-              <tr><td colspan="6" class="admin-empty">Chargement...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Durées & gains -->
-      <div class="admin-card">
-        <div class="admin-card-title">
-          <i class="ri-time-line"></i> Durées & Gains (plans courts)
-        </div>
-        <div style="overflow-x:auto;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Durée</th>
-                <th>Gain %</th>
-                <th>Exemple 10 000 F</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="durationsTable">
-              <tr><td colspan="4" class="admin-empty">Chargement...</td></tr>
+            <tbody id="plansTable">
+              <tr><td colspan="9" class="admin-empty">Chargement...</td></tr>
             </tbody>
           </table>
         </div>
@@ -116,121 +93,52 @@
     </div>
   </div>
 
-  <!-- MODAL PLAN FIXE -->
-  <div class="admin-modal-overlay" id="fixedModal">
+  <!-- MODAL MODIFIER PLAN -->
+  <div class="admin-modal-overlay" id="planModal">
     <div class="admin-modal">
-      <div class="admin-modal-title">Modifier le Plan Fixe</div>
-      <div class="alert alert-danger"  id="fixedAlert"></div>
-      <div class="alert alert-success" id="fixedSuccess"></div>
+      <div class="admin-modal-title" id="planModalTitle">Modifier le plan</div>
+      <div class="alert alert-danger"  id="planAlert"></div>
+      <div class="alert alert-success" id="planSuccess"></div>
+
       <div class="form-group">
         <label class="form-label">Nom</label>
-        <input type="text" class="form-input" id="fixedName">
+        <input type="text" class="form-input" id="editName">
       </div>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
         <div class="form-group">
-          <label class="form-label">Prix (F)</label>
-          <input type="number" class="form-input" id="fixedPrice">
+          <label class="form-label">Montant (F)</label>
+          <input type="number" class="form-input" id="editPrice" oninput="updateModalPreview()">
         </div>
         <div class="form-group">
-          <label class="form-label">Durée (jours)</label>
-          <input type="number" class="form-input" id="fixedDuration">
+          <label class="form-label">Gain/jour (F)</label>
+          <input type="number" class="form-input" id="editDailyGain" oninput="updateModalPreview()">
         </div>
       </div>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Gain journalier (F)</label>
-          <input type="number" class="form-input" id="fixedDailyGain">
-        </div>
         <div class="form-group">
           <label class="form-label">Stock</label>
-          <input type="number" class="form-input" id="fixedStock">
+          <input type="number" class="form-input" id="editStock">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max achats / user</label>
+          <input type="number" class="form-input" id="editMaxUser" min="1" max="10">
         </div>
       </div>
-      <div style="display:flex; gap:10px; margin-top:8px;">
-        <button class="admin-btn admin-btn-outline"
-          onclick="closeModal('fixedModal')" style="flex:1;">Annuler</button>
-        <button class="admin-btn admin-btn-primary"
-          onclick="saveFixedPlan()" style="flex:2;">
-          <i class="ri-save-line"></i> Enregistrer
-        </button>
-      </div>
-    </div>
-  </div>
 
-  <!-- MODAL PLAN COURT -->
-  <div class="admin-modal-overlay" id="shortModal">
-    <div class="admin-modal">
-      <div class="admin-modal-title" id="shortModalTitle">Modifier le plan</div>
-      <div class="alert alert-danger"  id="shortAlert"></div>
-      <div class="alert alert-success" id="shortSuccess"></div>
-      <div class="form-group">
-        <label class="form-label">Nom</label>
-        <input type="text" class="form-input" id="shortName">
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Prix (F)</label>
-          <input type="number" class="form-input" id="shortPrice">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Stock total</label>
-          <input type="number" class="form-input" id="shortStock">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Max achats / utilisateur</label>
-          <input type="number" class="form-input" id="shortMaxUser" min="1" max="10">
-        </div>
-        <div class="form-group" style="display:flex; align-items:flex-end;">
-          <div style="background:var(--dark3); border-radius:var(--radius-sm);
-            padding:10px; width:100%; text-align:center;">
-            <div style="font-size:11px; color:var(--gray);">Stock restant</div>
-            <div style="font-weight:700; color:var(--warning);" id="shortStockLeft">-</div>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex; gap:10px; margin-top:8px;">
-        <button class="admin-btn admin-btn-outline"
-          onclick="closeModal('shortModal')" style="flex:1;">Annuler</button>
-        <button class="admin-btn admin-btn-primary"
-          onclick="saveShortPlan()" style="flex:2;">
-          <i class="ri-save-line"></i> Enregistrer
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DURÉE -->
-  <div class="admin-modal-overlay" id="durationModal">
-    <div class="admin-modal">
-      <div class="admin-modal-title" id="durationModalTitle">Modifier la durée</div>
-      <div class="alert alert-danger"  id="durationAlert"></div>
-      <div class="alert alert-success" id="durationSuccess"></div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Durée (jours)</label>
-          <input type="number" class="form-input" id="durationDays" readonly
-            style="opacity:0.6;">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Gain %</label>
-          <input type="number" class="form-input" id="durationGain"
-            oninput="updateDurationPreview()">
-        </div>
-      </div>
+      <!-- Aperçu total 60j -->
       <div style="background:var(--dark3); border-radius:var(--radius-sm);
         padding:12px; margin-bottom:16px;">
-        <div style="font-size:12px; color:var(--gray); margin-bottom:4px;">
-          Exemple sur 10 000 F
-        </div>
-        <div style="font-weight:700; color:var(--success);" id="durationPreview">-</div>
+        <div style="font-size:12px; color:var(--gray); margin-bottom:4px;">Total sur 60 jours</div>
+        <div style="font-weight:800; font-size:18px; color:var(--success);" id="modalPreview">-</div>
       </div>
+
       <div style="display:flex; gap:10px;">
         <button class="admin-btn admin-btn-outline"
-          onclick="closeModal('durationModal')" style="flex:1;">Annuler</button>
+          onclick="closeModal()" style="flex:1;">Annuler</button>
         <button class="admin-btn admin-btn-primary"
-          onclick="saveDuration()" style="flex:2;">
+          onclick="savePlan()" style="flex:2;">
           <i class="ri-save-line"></i> Enregistrer
         </button>
       </div>
@@ -244,81 +152,38 @@
   <script>
     checkAdminAuth();
 
-    let fixedPlan        = null;
-    let shortPlans       = [];
-    let durations        = [];
-    let selectedShort    = null;
-    let selectedDuration = null;
+    let allPlans     = [];
+    let selectedPlan = null;
 
     async function loadPlans() {
-      const plans = await getPlans();
-      fixedPlan   = plans.find(p => p.type === 'fixed');
-      shortPlans  = plans.filter(p => p.type === 'short');
-      durations   = await getPlanDurations();
-
-      renderFixed();
-      renderShorts();
-      renderDurations();
+      allPlans = await getPlans();
+      // Inclure les inactifs aussi pour l'admin
+      const { data } = await db.from('plans').select('*').order('price', { ascending: true });
+      allPlans = data || [];
+      renderPlans();
     }
 
-    // ── Plan fixe ──────────────────────────────────────────
-    function renderFixed() {
-      const tbody = document.getElementById('fixedPlanTable');
-      if (!fixedPlan) {
-        tbody.innerHTML = '<tr><td colspan="7" class="admin-empty">Aucun plan fixe</td></tr>';
+    function renderPlans() {
+      const tbody = document.getElementById('plansTable');
+      if (!allPlans.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="admin-empty">Aucun plan</td></tr>';
         return;
       }
-      const stockColor = fixedPlan.stock <= 10
-        ? 'color:var(--danger)' : 'color:var(--success)';
-      tbody.innerHTML = `
-        <tr>
-          <td style="font-weight:700;">${fixedPlan.name}</td>
-          <td style="font-weight:700; color:var(--primary);">
-            ${formatMoney(fixedPlan.price)}
-          </td>
-          <td>${fixedPlan.duration_days} jours</td>
-          <td style="color:var(--success); font-weight:700;">
-            ${formatMoney(fixedPlan.daily_gain)}/jour
-          </td>
-          <td style="font-weight:700; ${stockColor};">
-            ${fixedPlan.stock}
-          </td>
-          <td>
-            <span class="badge ${fixedPlan.is_active ? 'badge-success' : 'badge-danger'}">
-              ${fixedPlan.is_active ? 'Actif' : 'Inactif'}
-            </span>
-          </td>
-          <td style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="admin-btn admin-btn-primary admin-btn-sm"
-              onclick="openFixedModal()">
-              <i class="ri-edit-line"></i> Modifier
-            </button>
-            <button class="admin-btn admin-btn-sm
-              ${fixedPlan.is_active ? 'admin-btn-danger' : 'admin-btn-success'}"
-              onclick="togglePlan('${fixedPlan.id}', ${fixedPlan.is_active})">
-              ${fixedPlan.is_active ? 'Désactiver' : 'Activer'}
-            </button>
-          </td>
-        </tr>`;
-    }
 
-    // ── Plans courts ───────────────────────────────────────
-    function renderShorts() {
-      const tbody = document.getElementById('shortPlansTable');
-      if (!shortPlans.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="admin-empty">Aucun plan court</td></tr>';
-        return;
-      }
-      tbody.innerHTML = shortPlans.map(p => {
+      tbody.innerHTML = allPlans.map((p, i) => {
+        const total60    = p.daily_gain * 60;
         const stockColor = p.stock <= 5
-          ? 'color:var(--danger)' : p.stock <= 20
-            ? 'color:var(--warning)' : 'color:var(--success)';
+          ? 'color:var(--danger)'
+          : p.stock <= 20
+            ? 'color:var(--warning)'
+            : 'color:var(--success)';
         return `
           <tr>
+            <td style="font-weight:700; color:var(--gray);">${i + 1}</td>
             <td style="font-weight:700;">${p.name}</td>
-            <td style="font-weight:700; color:var(--primary);">
-              ${formatMoney(p.price)}
-            </td>
+            <td style="font-weight:700; color:var(--primary);">${formatMoney(p.price)}</td>
+            <td style="color:var(--success); font-weight:700;">${formatMoney(p.daily_gain)}</td>
+            <td style="color:var(--success); font-weight:700;">${formatMoney(total60)}</td>
             <td style="font-weight:700; ${stockColor};">${p.stock}</td>
             <td style="text-align:center;">
               <span class="badge badge-primary">${p.max_per_user || 2}x</span>
@@ -330,7 +195,7 @@
             </td>
             <td style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="admin-btn admin-btn-primary admin-btn-sm"
-                onclick="openShortModal('${p.id}')">
+                onclick="openModal('${p.id}')">
                 <i class="ri-edit-line"></i> Modifier
               </button>
               <button class="admin-btn admin-btn-sm
@@ -343,135 +208,48 @@
       }).join('');
     }
 
-    // ── Durées ─────────────────────────────────────────────
-    function renderDurations() {
-      const tbody = document.getElementById('durationsTable');
-      if (!durations.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">Aucune durée</td></tr>';
-        return;
-      }
-      tbody.innerHTML = durations.map(d => {
-        const ex = 10000 + 10000 * (d.gain_percent / 100);
-        return `
-          <tr>
-            <td style="font-weight:700;">${d.duration_days} jours</td>
-            <td style="color:var(--warning); font-weight:700;">+${d.gain_percent}%</td>
-            <td style="color:var(--success); font-weight:700;">
-              ${formatMoney(ex)}
-            </td>
-            <td>
-              <button class="admin-btn admin-btn-primary admin-btn-sm"
-                onclick="openDurationModal(${d.id})">
-                <i class="ri-edit-line"></i> Modifier
-              </button>
-            </td>
-          </tr>`;
-      }).join('');
+    function openModal(planId) {
+      selectedPlan = allPlans.find(p => p.id === planId);
+      if (!selectedPlan) return;
+
+      document.getElementById('planModalTitle').textContent = 'Modifier — ' + selectedPlan.name;
+      document.getElementById('editName').value     = selectedPlan.name;
+      document.getElementById('editPrice').value    = selectedPlan.price;
+      document.getElementById('editDailyGain').value = selectedPlan.daily_gain;
+      document.getElementById('editStock').value    = selectedPlan.stock;
+      document.getElementById('editMaxUser').value  = selectedPlan.max_per_user || 2;
+      document.getElementById('planAlert').classList.remove('show');
+      document.getElementById('planSuccess').classList.remove('show');
+      updateModalPreview();
+      document.getElementById('planModal').classList.add('show');
     }
 
-    // ── Modals ─────────────────────────────────────────────
-    function openFixedModal() {
-      if (!fixedPlan) return;
-      document.getElementById('fixedName').value     = fixedPlan.name;
-      document.getElementById('fixedPrice').value    = fixedPlan.price;
-      document.getElementById('fixedDuration').value = fixedPlan.duration_days;
-      document.getElementById('fixedDailyGain').value = fixedPlan.daily_gain;
-      document.getElementById('fixedStock').value    = fixedPlan.stock;
-      document.getElementById('fixedAlert').classList.remove('show');
-      document.getElementById('fixedSuccess').classList.remove('show');
-      document.getElementById('fixedModal').classList.add('show');
+    function updateModalPreview() {
+      const gain  = parseFloat(document.getElementById('editDailyGain').value) || 0;
+      const total = gain * 60;
+      document.getElementById('modalPreview').textContent = formatMoney(total);
     }
 
-    async function saveFixedPlan() {
-      const name      = document.getElementById('fixedName').value.trim();
-      const price     = parseFloat(document.getElementById('fixedPrice').value);
-      const duration  = parseInt(document.getElementById('fixedDuration').value);
-      const dailyGain = parseFloat(document.getElementById('fixedDailyGain').value);
-      const stock     = parseInt(document.getElementById('fixedStock').value);
+    async function savePlan() {
+      if (!selectedPlan) return;
+      const name     = document.getElementById('editName').value.trim();
+      const price    = parseFloat(document.getElementById('editPrice').value);
+      const daily    = parseFloat(document.getElementById('editDailyGain').value);
+      const stock    = parseInt(document.getElementById('editStock').value);
+      const maxUser  = parseInt(document.getElementById('editMaxUser').value);
 
-      if (!name || isNaN(price) || isNaN(duration) || isNaN(dailyGain) || isNaN(stock)) {
-        showAdminAlert('fixedAlert', 'Veuillez remplir tous les champs.');
+      if (!name || isNaN(price) || isNaN(daily) || isNaN(stock) || isNaN(maxUser)) {
+        showAdminAlert('planAlert', 'Veuillez remplir tous les champs.');
         return;
       }
 
       const { error } = await db.from('plans')
-        .update({ name, price, duration_days: duration, daily_gain: dailyGain, stock })
-        .eq('id', fixedPlan.id);
+        .update({ name, price, daily_gain: daily, stock, max_per_user: maxUser })
+        .eq('id', selectedPlan.id);
 
-      if (error) { showAdminAlert('fixedAlert', 'Erreur : ' + error.message); return; }
-      showAdminAlert('fixedSuccess', 'Plan fixe modifié !', 'success');
-      setTimeout(() => { closeModal('fixedModal'); loadPlans(); }, 1500);
-    }
-
-    function openShortModal(planId) {
-      selectedShort = shortPlans.find(p => p.id === planId);
-      if (!selectedShort) return;
-
-      document.getElementById('shortModalTitle').textContent = 'Modifier ' + selectedShort.name;
-      document.getElementById('shortName').value     = selectedShort.name;
-      document.getElementById('shortPrice').value    = selectedShort.price;
-      document.getElementById('shortStock').value    = selectedShort.stock;
-      document.getElementById('shortMaxUser').value  = selectedShort.max_per_user || 2;
-      document.getElementById('shortStockLeft').textContent = selectedShort.stock + ' restants';
-      document.getElementById('shortAlert').classList.remove('show');
-      document.getElementById('shortSuccess').classList.remove('show');
-      document.getElementById('shortModal').classList.add('show');
-    }
-
-    async function saveShortPlan() {
-      if (!selectedShort) return;
-      const name    = document.getElementById('shortName').value.trim();
-      const price   = parseFloat(document.getElementById('shortPrice').value);
-      const stock   = parseInt(document.getElementById('shortStock').value);
-      const maxUser = parseInt(document.getElementById('shortMaxUser').value);
-
-      if (!name || isNaN(price) || isNaN(stock) || isNaN(maxUser)) {
-        showAdminAlert('shortAlert', 'Veuillez remplir tous les champs.');
-        return;
-      }
-
-      const { error } = await db.from('plans')
-        .update({ name, price, stock, max_per_user: maxUser })
-        .eq('id', selectedShort.id);
-
-      if (error) { showAdminAlert('shortAlert', 'Erreur : ' + error.message); return; }
-      showAdminAlert('shortSuccess', 'Plan modifié !', 'success');
-      setTimeout(() => { closeModal('shortModal'); loadPlans(); }, 1500);
-    }
-
-    function openDurationModal(id) {
-      selectedDuration = durations.find(d => d.id === id);
-      if (!selectedDuration) return;
-      document.getElementById('durationModalTitle').textContent =
-        `Modifier ${selectedDuration.duration_days} jours`;
-      document.getElementById('durationDays').value  = selectedDuration.duration_days;
-      document.getElementById('durationGain').value  = selectedDuration.gain_percent;
-      document.getElementById('durationAlert').classList.remove('show');
-      document.getElementById('durationSuccess').classList.remove('show');
-      updateDurationPreview();
-      document.getElementById('durationModal').classList.add('show');
-    }
-
-    function updateDurationPreview() {
-      const pct = parseFloat(document.getElementById('durationGain').value) || 0;
-      document.getElementById('durationPreview').textContent =
-        formatMoney(10000 + 10000 * (pct / 100));
-    }
-
-    async function saveDuration() {
-      if (!selectedDuration) return;
-      const gainPercent = parseFloat(document.getElementById('durationGain').value);
-      if (isNaN(gainPercent) || gainPercent <= 0) {
-        showAdminAlert('durationAlert', 'Pourcentage invalide.');
-        return;
-      }
-
-      const { error } = await db.from('plan_durations')
-        .update({ gain_percent: gainPercent }).eq('id', selectedDuration.id);
-
-      if (error) { showAdminAlert('durationAlert', 'Erreur : ' + error.message); return; }
-      showAdminAlert('durationSuccess', 'Durée modifiée !', 'success');
-      setTimeout(() => { closeModal('durationModal'); loadPlans(); }, 1500);
+      if (error) { showAdminAlert('planAlert', 'Erreur : ' + error.message); return; }
+      showAdminAlert('planSuccess', 'Plan modifié avec succès !', 'success');
+      setTimeout(() => { closeModal(); loadPlans(); }, 1500);
     }
 
     async function togglePlan(planId, isActive) {
@@ -479,15 +257,13 @@
       loadPlans();
     }
 
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('show');
-      selectedShort = null; selectedDuration = null;
+    function closeModal() {
+      document.getElementById('planModal').classList.remove('show');
+      selectedPlan = null;
     }
 
-    document.querySelectorAll('.admin-modal-overlay').forEach(el => {
-      el.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('show');
-      });
+    document.getElementById('planModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
     });
 
     loadPlans();

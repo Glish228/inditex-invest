@@ -11,7 +11,7 @@
 </head>
 
 <body>
-  
+
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg" style="background-image:url('assets/IMG-20261014-WA0008.jpg')"></div>
@@ -19,7 +19,7 @@
     <div class="hero-content">
       <div class="brand-logo">INDITEX</div>
       <p class="brand-tagline">Investissez intelligemment, gagnez quotidiennement</p>
-      
+
       <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
         <a href="register.html" class="btn btn-primary">
           <i class="ri-user-add-line"></i> Créer un compte
@@ -28,70 +28,111 @@
           <i class="ri-login-box-line"></i> Se connecter
         </a>
       </div>
-      
+
+      <!-- Chiffres clés -->
       <div style="margin-top:40px; display:flex; justify-content:center; gap:32px;">
+        <div style="text-align:center;">
+          <div style="font-size:24px; font-weight:900; color:var(--primary);">10%</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.6);">Gain / jour</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:24px; font-weight:900; color:var(--primary);">60j</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.6);">Durée du plan</div>
+        </div>
         <div style="text-align:center;">
           <div style="font-size:24px; font-weight:900; color:var(--primary);">+15%</div>
           <div style="font-size:11px; color:rgba(255,255,255,0.6);">Bonus parrainage</div>
         </div>
-        <div style="text-align:center;">
-          <div style="font-size:24px; font-weight:900; color:var(--primary);">180j</div>
-          <div style="font-size:11px; color:rgba(255,255,255,0.6);">Plan fixe</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:24px; font-weight:900; color:var(--primary);">+140%</div>
-          <div style="font-size:11px; color:rgba(255,255,255,0.6);">Gain max</div>
-        </div>
       </div>
     </div>
   </section>
-  
+
   <!-- PLANS -->
   <section style="background:var(--dark); padding:40px 0;">
     <div class="container">
       <div class="section-title">Nos plans d'investissement</div>
-      
-      <!-- Plan fixe -->
-      <div class="plan-card">
+
+      <!-- Règle unique : 60j / 10% -->
+      <div style="background:rgba(108,60,255,0.08); border:1px solid var(--primary);
+        border-radius:var(--radius); padding:16px; margin-bottom:20px;
+        display:flex; gap:0; justify-content:space-around; text-align:center;">
+        <div>
+          <div style="font-size:22px; font-weight:800; color:var(--primary);">10%</div>
+          <div style="font-size:11px; color:var(--gray);">gain / jour</div>
+        </div>
+        <div style="width:1px; background:var(--border);"></div>
+        <div>
+          <div style="font-size:22px; font-weight:800; color:var(--success);">60 jours</div>
+          <div style="font-size:11px; color:var(--gray);">durée</div>
+        </div>
+        <div style="width:1px; background:var(--border);"></div>
+        <div>
+          <div style="font-size:22px; font-weight:800; color:var(--warning);">500 F</div>
+          <div style="font-size:11px; color:var(--gray);">bonus 1er plan</div>
+        </div>
+      </div>
+
+      <!-- Aperçu 3 plans -->
+      <div class="plan-card" style="margin-bottom:16px;">
         <div class="plan-card-bg" style="background-image:url('assets/IMG-20261014-WA0003.jpg')"></div>
         <div class="plan-card-overlay"></div>
         <div class="plan-card-content">
           <div>
-            <span class="plan-badge">⭐ PLAN FIXE</span>
-            <div class="plan-name">Activation de compte</div>
-            <div class="plan-price">2 000 F</div>
+            <span class="plan-badge">📈 60 JOURS · 10%/JOUR</span>
+            <div class="plan-name">Plan Starter</div>
+            <div class="plan-price">3 000 F</div>
             <div class="plan-info">
-              <div class="plan-info-item">⏱ <strong>180 jours</strong></div>
-              <div class="plan-info-item">📈 <strong>200 F/jour</strong></div>
-              <div class="plan-info-item">🎁 Bonus <strong>300 F</strong></div>
+              <div class="plan-info-item">💰 <strong>300 F/jour</strong></div>
+              <div class="plan-info-item">🏆 Total <strong>18 000 F</strong></div>
             </div>
           </div>
           <a href="register.html" class="plan-btn">Commencer</a>
         </div>
       </div>
-      
-      <!-- Plans courts -->
-      <div class="plan-card">
+
+      <div class="plan-card" style="margin-bottom:16px;">
         <div class="plan-card-bg" style="background-image:url('assets/IMG-20261014-WA0005.jpg')"></div>
         <div class="plan-card-overlay"></div>
         <div class="plan-card-content">
           <div>
-            <span class="plan-badge">🚀 PLANS COURTS</span>
-            <div class="plan-name">De 2 à 11 jours</div>
-            <div class="plan-price">3 000 F — 100 000 F</div>
+            <span class="plan-badge">📈 60 JOURS · 10%/JOUR</span>
+            <div class="plan-name">Plan Gold</div>
+            <div class="plan-price">10 000 F</div>
             <div class="plan-info">
-              <div class="plan-info-item">📈 De <strong>+20%</strong> à <strong>+140%</strong></div>
-              <div class="plan-info-item">🎁 Bonus premier plan <strong>500 F</strong></div>
-              <div class="plan-info-item">📦 Stock limité par plan</div>
+              <div class="plan-info-item">💰 <strong>1 000 F/jour</strong></div>
+              <div class="plan-info-item">🏆 Total <strong>60 000 F</strong></div>
             </div>
           </div>
-          <a href="register.html" class="plan-btn">Investir</a>
+          <a href="register.html" class="plan-btn">Commencer</a>
         </div>
       </div>
-      
+
+      <div class="plan-card" style="margin-bottom:24px;">
+        <div class="plan-card-bg" style="background-image:url('assets/IMG-20261014-WA0008.jpg')"></div>
+        <div class="plan-card-overlay"></div>
+        <div class="plan-card-content">
+          <div>
+            <span class="plan-badge">📈 60 JOURS · 10%/JOUR</span>
+            <div class="plan-name">Plan VIP</div>
+            <div class="plan-price">100 000 F</div>
+            <div class="plan-info">
+              <div class="plan-info-item">💰 <strong>10 000 F/jour</strong></div>
+              <div class="plan-info-item">🏆 Total <strong>600 000 F</strong></div>
+            </div>
+          </div>
+          <a href="register.html" class="plan-btn">Commencer</a>
+        </div>
+      </div>
+
+      <a href="register.html" class="btn btn-outline"
+        style="display:flex; align-items:center; justify-content:center;
+               gap:8px; margin-bottom:24px; padding:14px;">
+        <i class="ri-store-2-line"></i> Voir les 9 plans
+      </a>
+
       <!-- Parrainage -->
       <div class="card" style="background:linear-gradient(135deg,var(--dark2),var(--dark3));
-        border-color:var(--border);">
+        border-color:var(--border); margin-bottom:16px;">
         <div class="section-title" style="font-size:15px;">Programme de parrainage</div>
         <div style="display:flex; flex-direction:column; gap:10px;">
           <div class="d-flex align-center justify-between">
@@ -111,9 +152,10 @@
           <i class="ri-group-line"></i> Parrainer mes amis
         </a>
       </div>
-      
+
       <!-- Telegram -->
-      <a href="https://t.me/inditexofficiel" target="_blank" style="display:flex; align-items:center; gap:12px;
+      <a href="https://t.me/inditexofficiel" target="_blank"
+        style="display:flex; align-items:center; gap:12px;
                background:rgba(0,136,204,0.1); border:1px solid rgba(0,136,204,0.3);
                border-radius:var(--radius); padding:16px; margin-bottom:16px;">
         <i class="ri-telegram-fill" style="font-size:28px; color:#29b6f6;"></i>
@@ -123,10 +165,10 @@
         </div>
         <i class="ri-arrow-right-line" style="margin-left:auto; color:var(--gray);"></i>
       </a>
-      
+
     </div>
   </section>
-  
+
   <script>
     const user = localStorage.getItem('inditex_user');
     if (user) {
@@ -136,7 +178,7 @@
       if (ref) window.location.href = 'register.html?ref=' + ref;
     }
   </script>
-  
+
 </body>
 
 </html>

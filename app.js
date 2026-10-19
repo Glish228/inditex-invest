@@ -5,7 +5,7 @@
 document.addEventListener('DOMContentLoaded', async function() {
   const page = getCurrentPage();
 
-  // ✅ Ignorer toutes les pages admin
+  // Ignorer toutes les pages admin
   if (window.location.pathname.includes('/admin/')) return;
 
   // Pages publiques
@@ -21,9 +21,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Pages privées
   const privatePages = [
-  'dashboard', 'products', 'withdraw',
-  'team', 'profile', 'support', 'history'
-];
+    'dashboard', 'products', 'withdraw',
+    'team', 'profile', 'support', 'history'
+  ];
 
   if (privatePages.includes(page)) {
     const user = getSession();
@@ -42,9 +42,8 @@ document.addEventListener('DOMContentLoaded', async function() {
       saveSession({ ...user, is_active: freshUser.is_active });
     }
 
-    // ✅ Gains journaliers → portefeuille retrait
-    await creditDailyFixedGain(user.id);
-    await creditCompletedShortPlans(user.id);
+    // Gains journaliers → portefeuille retrait
+    await creditDailyGains(user.id);
     await checkUnreadSupport(user.id);
   }
 });
@@ -53,54 +52,39 @@ function getCurrentPage() {
   return window.location.pathname.split('/').pop().replace('.html', '') || 'index';
 }
 
-// ─── GAIN JOURNALIER PLAN FIXE → RETRAIT ─────────────────
-async function creditDailyFixedGain(user_id) {
+// ─── GAINS JOURNALIERS → RETRAIT ─────────────────────────
+async function creditDailyGains(user_id) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: plan } = await db
-      .from('user_plans').select('*, plans(daily_gain)')
-      .eq('user_id', user_id).eq('type', 'fixed').eq('status', 'active').single();
-
-    if (!plan) return;
-    if (plan.last_credit_date === today) return;
-
-    if (new Date() > new Date(plan.end_date)) {
-      await db.from('user_plans').update({ status: 'completed' }).eq('id', plan.id);
-      return;
-    }
-
-    const dailyGain = plan.plans?.daily_gain || 200;
-
-    // ✅ Créditer portefeuille RETRAIT (plus unique)
-    await updateWallet(user_id, 'withdrawal_balance', dailyGain);
-    await logTransaction(user_id, 'gain_fixed', dailyGain, 'withdrawal', 'completed',
-      'Gain journalier plan fixe');
-    await db.from('user_plans').update({ last_credit_date: today }).eq('id', plan.id);
-
-  } catch (err) {
-    console.error('creditDailyFixedGain error:', err);
-  }
-}
-
-// ─── PLANS COURTS TERMINÉS → RETRAIT ─────────────────────
-async function creditCompletedShortPlans(user_id) {
-  try {
+    // Récupérer tous les plans actifs de l'utilisateur
     const { data: plans } = await db
-      .from('user_plans').select('*')
-      .eq('user_id', user_id).eq('type', 'short').eq('status', 'active')
-      .lte('end_date', new Date().toISOString());
+      .from('user_plans').select('*, plans(daily_gain)')
+      .eq('user_id', user_id).eq('status', 'active');
 
     if (!plans || plans.length === 0) return;
 
     for (const plan of plans) {
-      await updateWallet(user_id, 'withdrawal_balance', plan.gain_total);
-      await logTransaction(user_id, 'gain_short', plan.gain_total, 'withdrawal',
-        'completed', 'Gain plan court terminé');
-      await db.from('user_plans').update({ status: 'completed' }).eq('id', plan.id);
+      // Plan expiré → on le marque completed, pas de gain
+      if (new Date() > new Date(plan.end_date)) {
+        await db.from('user_plans').update({ status: 'completed' }).eq('id', plan.id);
+        continue;
+      }
+
+      // Gain déjà crédité aujourd'hui → skip
+      if (plan.last_credit_date === today) continue;
+
+      const dailyGain = plan.plans?.daily_gain || 0;
+      if (dailyGain <= 0) continue;
+
+      // Créditer portefeuille retrait
+      await updateWallet(user_id, 'withdrawal_balance', dailyGain);
+      await logTransaction(user_id, 'gain_daily', dailyGain, 'withdrawal', 'completed',
+        `Gain journalier — ${plan.plans?.daily_gain ? formatMoney(dailyGain) + '/jour' : ''}`);
+      await db.from('user_plans').update({ last_credit_date: today }).eq('id', plan.id);
     }
   } catch (err) {
-    console.error('creditCompletedShortPlans error:', err);
+    console.error('creditDailyGains error:', err);
   }
 }
 

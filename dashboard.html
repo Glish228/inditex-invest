@@ -81,49 +81,25 @@
         </a>
       </div>
 
-      <!-- Plan fixe actif -->
-      <div id="fixedPlanSection" style="display:none;">
-        <div class="section-title">Plan Fixe Actif</div>
-        <div class="card" style="background:linear-gradient(135deg,var(--dark2),var(--dark3));">
-          <div class="d-flex align-center justify-between mb-8">
-            <span style="font-weight:700;">Plan Fixe</span>
-            <span class="badge badge-success">Actif</span>
-          </div>
-          <div style="font-size:13px; color:var(--gray); margin-bottom:4px;">
-            Gain journalier : <strong style="color:var(--white);">200 F</strong>
-            → versé sur portefeuille retrait
-          </div>
-          <div style="font-size:13px; color:var(--gray); margin-bottom:12px;">
-            Fin le : <strong style="color:var(--white);" id="fixedEndDate">...</strong>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="fixedProgress" style="width:0%"></div>
-          </div>
-          <div style="font-size:11px; color:var(--gray); margin-top:6px; text-align:right;">
-            <span id="fixedDaysLeft">...</span> jours restants
-          </div>
-        </div>
+      <!-- Mes plans actifs -->
+      <div id="activePlansSection" style="display:none;">
+        <div class="section-title">Mes plans actifs</div>
+        <div id="activePlansList"></div>
       </div>
 
-      <!-- Pas de plan fixe -->
-      <div id="noFixedPlan">
+      <!-- Aucun plan -->
+      <div id="noActivePlan">
         <div class="card" style="background:rgba(108,60,255,0.08); border-color:var(--primary);
           text-align:center; padding:24px;">
-          <i class="ri-lock-line" style="font-size:36px; color:var(--primary);"></i>
-          <p style="font-size:14px; margin:10px 0; font-weight:600;">Compte non activé</p>
+          <i class="ri-bar-chart-2-line" style="font-size:36px; color:var(--primary);"></i>
+          <p style="font-size:14px; margin:10px 0; font-weight:600;">Aucun plan actif</p>
           <p style="font-size:12px; color:var(--gray); margin-bottom:16px;">
-            Achetez le plan fixe à 2 000 F pour activer votre compte et commencer à gagner.
+            Choisissez un plan et commencez à gagner 10 % par jour pendant 60 jours.
           </p>
           <a href="products.html" class="btn btn-primary" style="padding:12px;">
-            <i class="ri-shopping-cart-line"></i> Activer maintenant
+            <i class="ri-shopping-cart-line"></i> Voir les plans
           </a>
         </div>
-      </div>
-
-      <!-- Plans courts actifs -->
-      <div id="shortPlansSection" style="margin-top:20px; display:none;">
-        <div class="section-title">Plans Courts Actifs</div>
-        <div id="shortPlansList"></div>
       </div>
 
       <!-- Dernières transactions -->
@@ -193,13 +169,11 @@
     if (!user) window.location.href = 'login.html';
 
     const TX_LABELS = {
-      deposit:           { icon: '💳', label: 'Dépôt' },
-      withdrawal:        { icon: '🏧', label: 'Retrait' },
-      gain_fixed:        { icon: '📈', label: 'Gain plan fixe' },
-      gain_short:        { icon: '🚀', label: 'Gain plan court' },
-      referral:          { icon: '👥', label: 'Commission parrainage' },
-      bonus_activation:  { icon: '🎁', label: 'Bonus activation' },
-      bonus_first_short: { icon: '🎉', label: 'Bonus premier plan' }
+      deposit:          { icon: '💳', label: 'Dépôt' },
+      withdrawal:       { icon: '🏧', label: 'Retrait' },
+      gain_daily:       { icon: '📈', label: 'Gain journalier' },
+      referral:         { icon: '👥', label: 'Commission parrainage' },
+      bonus_first_plan: { icon: '🎉', label: 'Bonus premier plan' }
     };
 
     async function loadDashboard() {
@@ -210,61 +184,53 @@
         ? '<span class="badge badge-success">✓ Compte actif</span>'
         : '<span class="badge badge-warning">⚠ Compte non activé</span>';
 
-      // 2 portefeuilles
       const wallet = await getWallet(user.id);
       if (wallet) {
         document.getElementById('depositBalance').textContent    = formatMoney(wallet.deposit_balance);
         document.getElementById('withdrawalBalance').textContent = formatMoney(wallet.withdrawal_balance);
       }
 
-      // Plans
-      const plans      = await getUserPlans(user.id);
-      const fixedPlan  = plans.find(p => p.type === 'fixed'  && p.status === 'active');
-      const shortPlans = plans.filter(p => p.type === 'short' && p.status === 'active');
+      // Plans actifs
+      const plans       = await getUserPlans(user.id);
+      const activePlans = plans.filter(p => p.status === 'active');
 
-      if (fixedPlan) {
-        document.getElementById('fixedPlanSection').style.display = 'block';
-        document.getElementById('noFixedPlan').style.display      = 'none';
-        const end   = new Date(fixedPlan.end_date);
-        const now   = new Date();
-        const total = 180;
-        const left  = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-        const pct   = Math.min(100, Math.round(((total - left) / total) * 100));
-        document.getElementById('fixedEndDate').textContent  = end.toLocaleDateString('fr-FR');
-        document.getElementById('fixedDaysLeft').textContent = left;
-        document.getElementById('fixedProgress').style.width = pct + '%';
-      } else {
-        document.getElementById('fixedPlanSection').style.display = 'none';
-        document.getElementById('noFixedPlan').style.display      = 'block';
-      }
+      if (activePlans.length > 0) {
+        document.getElementById('activePlansSection').style.display = 'block';
+        document.getElementById('noActivePlan').style.display       = 'none';
 
-      if (shortPlans.length > 0) {
-        document.getElementById('shortPlansSection').style.display = 'block';
-        document.getElementById('shortPlansList').innerHTML = shortPlans.map(p => {
-          const end  = new Date(p.end_date);
-          const now  = new Date();
-          const left = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-          const days = p.plans?.duration_days || 1;
-          const pct  = Math.min(100, Math.round(((days - left) / days) * 100));
+        document.getElementById('activePlansList').innerHTML = activePlans.map(p => {
+          const end   = new Date(p.end_date);
+          const now   = new Date();
+          const total = 60;
+          const left  = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+          const pct   = Math.min(100, Math.round(((total - left) / total) * 100));
+          const daily = p.plans?.daily_gain || 0;
+          const totalGain = daily * 60;
           return `
             <div class="card" style="margin-bottom:12px;">
               <div class="d-flex align-center justify-between mb-8">
-                <span style="font-weight:700;">${p.plans?.name || 'Plan court'}</span>
-                <span class="badge badge-primary">Actif</span>
+                <span style="font-weight:700;">${p.plans?.name || 'Plan'}</span>
+                <span class="badge badge-success">Actif</span>
               </div>
-              <div style="font-size:13px; color:var(--gray);">
+              <div style="font-size:13px; color:var(--gray); margin-bottom:4px;">
                 Investi : <strong style="color:var(--white);">${formatMoney(p.amount_paid)}</strong>
-                &nbsp;→&nbsp; Total : <strong style="color:var(--success);">${formatMoney(p.gain_total)}</strong>
+                &nbsp;|&nbsp; Gain/jour : <strong style="color:var(--success);">${formatMoney(daily)}</strong>
               </div>
-              <div style="font-size:12px; color:var(--gray); margin-top:4px; margin-bottom:10px;">
-                Fin le : <strong style="color:var(--white);">${end.toLocaleDateString('fr-FR')}</strong>
-                &nbsp;|&nbsp; ${left} jour(s) restant(s)
+              <div style="font-size:13px; color:var(--gray); margin-bottom:10px;">
+                Total 60j : <strong style="color:var(--success);">${formatMoney(totalGain)}</strong>
+                &nbsp;|&nbsp; Fin le : <strong style="color:var(--white);">${end.toLocaleDateString('fr-FR')}</strong>
               </div>
               <div class="progress-bar">
                 <div class="progress-fill" style="width:${pct}%"></div>
               </div>
+              <div style="font-size:11px; color:var(--gray); margin-top:6px; text-align:right;">
+                ${left} jour(s) restant(s)
+              </div>
             </div>`;
         }).join('');
+      } else {
+        document.getElementById('activePlansSection').style.display = 'none';
+        document.getElementById('noActivePlan').style.display       = 'block';
       }
 
       // Transactions récentes
@@ -295,11 +261,6 @@
       document.getElementById('myRefCode').textContent = user.referral_code;
       document.getElementById('myRefLink').textContent =
         `${window.location.origin}/register.html?ref=${user.referral_code}`;
-
-      const msgs   = await getSupportMessages(user.id);
-      const unread = msgs.filter(m => m.sender === 'admin' && !m.is_read);
-      if (unread.length > 0)
-        document.getElementById('supportBadge').style.display = 'block';
     }
 
     function copyRef() {

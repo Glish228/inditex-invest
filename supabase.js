@@ -73,7 +73,6 @@ const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
 function redirectToDeposit(amount) {
   const user = getSession();
   const callback = encodeURIComponent(window.location.origin + '/deposit-callback.html');
-  // ✅ On passe le user_id dans la description pour le webhook
   const desc = encodeURIComponent('Dépôt Inditex|' + user.id);
   window.location.href =
     `https://bkapay.com/api-pay/${BKA_PUBLIC_KEY}?amount=${amount}&description=${desc}&callback=${callback}`;
@@ -81,14 +80,12 @@ function redirectToDeposit(amount) {
 
 async function confirmDeposit(user_id, transactionId, amount) {
   try {
-    // Proxy Cloudflare pour éviter CORS
     const res  = await fetch(`/functions/verify-deposit?transactionId=${transactionId}`);
     const data = await res.json();
 
     if (data.status !== 'completed') return { error: 'Paiement non confirmé.' };
     if (Number(data.amount) !== Number(amount)) return { error: 'Montant invalide.' };
 
-    // Idempotence
     const { data: existing } = await db
       .from('deposits').select('id').eq('payment_ref', transactionId).maybeSingle();
     if (existing) return { already: true };
@@ -113,13 +110,6 @@ async function getPlans() {
   return data;
 }
 
-async function getPlanDurations() {
-  const { data, error } = await db
-    .from('plan_durations').select('*').order('duration_days', { ascending: true });
-  if (error) return [];
-  return data;
-}
-
 async function getUserPlans(user_id) {
   const { data, error } = await db
     .from('user_plans').select('*, plans(*)')
@@ -128,12 +118,8 @@ async function getUserPlans(user_id) {
   return data;
 }
 
-async function buyFixedPlan(user_id, plan) {
-  // Déjà un plan fixe actif ?
-  const { data: existing } = await db
-    .from('user_plans').select('id')
-    .eq('user_id', user_id).eq('type', 'fixed').maybeSingle();
-  if (existing) return { error: 'Vous avez déjà le plan fixe.' };
+async function buyPlan(user_id, plan) {
+  const today = new Date().toISOString().split('T')[0];
 
   // Vérifier solde dépôt
   const wallet = await getWallet(user_id);
@@ -141,60 +127,17 @@ async function buyFixedPlan(user_id, plan) {
     return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
   }
 
-  // Débiter
-  const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
-  if (debit.error) return { error: debit.error };
-
-  const end_date = new Date();
-  end_date.setDate(end_date.getDate() + 180);
-
-  const { error } = await db.from('user_plans').insert({
-    user_id, plan_id: plan.id, type: 'fixed',
-    amount_paid: plan.price, start_date: new Date(), end_date
-  });
-  if (error) {
-    await updateWallet(user_id, 'deposit_balance', plan.price);
-    return { error: error.message };
-  }
-
-  // Décrémenter stock
-  await db.from('plans').update({ stock: plan.stock - 1 }).eq('id', plan.id);
-
-  await db.from('users').update({ is_active: true }).eq('id', user_id);
-
-  // Bonus activation : 300 F → retrait
-  await updateWallet(user_id, 'withdrawal_balance', 300);
-  await logTransaction(user_id, 'bonus_activation', 300, 'withdrawal', 'completed',
-    'Bonus activation compte');
-
-  // Parrainage niveau 1 : 15%, niveau 2 : 3%, niveau 3 : 2%
-  await handleReferralBonus(user_id, plan.price);
-
-  return { success: true };
-}
-
-async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
-  if (!await isAccountActive(user_id)) {
-    return { error: 'Activez votre compte avec le plan fixe d\'abord.' };
-  }
-
-  // Vérifier solde dépôt
-  const wallet = await getWallet(user_id);
-  if (!wallet || wallet.deposit_balance < plan.price) {
-    return { error: 'Solde insuffisant. Déposez d\'abord des fonds.' };
-  }
-
-  // ✅ Vérifier stock disponible
+  // Vérifier stock disponible (relecture fraîche)
   const { data: freshPlan } = await db
     .from('plans').select('stock, max_per_user').eq('id', plan.id).single();
   if (!freshPlan || freshPlan.stock <= 0) {
     return { error: 'Ce plan est épuisé. Choisissez un autre montant.' };
   }
 
-  // ✅ Vérifier limite par utilisateur (max 2, pas de même plan actif)
+  // Vérifier limite par utilisateur sur ce plan
   const { data: userPlansSame } = await db
     .from('user_plans').select('id, status')
-    .eq('user_id', user_id).eq('plan_id', plan.id).eq('type', 'short');
+    .eq('user_id', user_id).eq('plan_id', plan.id);
 
   const activeSame = (userPlansSame || []).filter(p => p.status === 'active');
   if (activeSame.length > 0) {
@@ -206,24 +149,27 @@ async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
     return { error: `Vous avez atteint la limite de ${freshPlan.max_per_user || 2} achats pour ce plan.` };
   }
 
-  // Vérifier si premier plan court
-  const { count: shortCount } = await db
+  // Vérifier si c'est le tout premier plan de l'utilisateur (toutes catégories)
+  const { count: totalPlans } = await db
     .from('user_plans').select('id', { count: 'exact' })
-    .eq('user_id', user_id).eq('type', 'short');
-  const isFirst = shortCount === 0;
+    .eq('user_id', user_id);
+  const isFirst = totalPlans === 0;
 
-  // Débiter
+  // Débiter le portefeuille dépôt
   const debit = await updateWallet(user_id, 'deposit_balance', -plan.price);
   if (debit.error) return { error: debit.error };
 
-  const gain_total = plan.price * (gain_percent / 100) + Number(plan.price);
-  const end_date   = new Date();
-  end_date.setDate(end_date.getDate() + duration_days);
+  const end_date = new Date();
+  end_date.setDate(end_date.getDate() + 60);
 
+  // ✅ last_credit_date = aujourd'hui pour éviter le gain immédiat à l'achat
   const { error } = await db.from('user_plans').insert({
-    user_id, plan_id: plan.id, type: 'short',
-    amount_paid: plan.price, gain_total,
-    start_date: new Date(), end_date
+    user_id,
+    plan_id: plan.id,
+    amount_paid: plan.price,
+    start_date: new Date(),
+    end_date,
+    last_credit_date: today
   });
   if (error) {
     await updateWallet(user_id, 'deposit_balance', plan.price);
@@ -233,15 +179,17 @@ async function buyShortPlan(user_id, plan, duration_days, gain_percent) {
   // Décrémenter stock
   await db.from('plans').update({ stock: freshPlan.stock - 1 }).eq('id', plan.id);
 
-  // Bonus premier plan court
+  // Activer le compte
+  await db.from('users').update({ is_active: true }).eq('id', user_id);
+
+  // Bonus premier plan : 500 F → retrait
   if (isFirst) {
-    const bonus = plan.price <= 10000 ? 500 : 750;
-    await updateWallet(user_id, 'withdrawal_balance', bonus);
-    await logTransaction(user_id, 'bonus_first_short', bonus, 'withdrawal', 'completed',
-      `Bonus premier plan court (${formatMoney(plan.price)})`);
+    await updateWallet(user_id, 'withdrawal_balance', 500);
+    await logTransaction(user_id, 'bonus_first_plan', 500, 'withdrawal', 'completed',
+      `Bonus premier plan (${formatMoney(plan.price)})`);
   }
 
-  // Parrainage
+  // Parrainage : 15% / 3% / 2%
   await handleReferralBonus(user_id, plan.price);
 
   return { success: true };
@@ -286,7 +234,8 @@ async function requestWithdrawal(user_id, amount, mobile_number, country_code, o
   const wallet = await getWallet(user_id);
   if (!wallet || wallet.withdrawal_balance < amount) return { error: 'Solde insuffisant.' };
 
-  const fee        = amount * 0.10;
+  // ✅ Frais 12%
+  const fee        = amount * 0.12;
   const amount_net = amount - fee;
 
   await updateWallet(user_id, 'withdrawal_balance', -amount);

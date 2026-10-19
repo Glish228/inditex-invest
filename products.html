@@ -8,22 +8,6 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
   <style>
-    .duration-tabs {
-      display: flex; gap: 8px; overflow-x: auto;
-      padding-bottom: 8px; margin-bottom: 16px;
-      scrollbar-width: none;
-    }
-    .duration-tabs::-webkit-scrollbar { display: none; }
-    .duration-tab {
-      flex-shrink: 0; padding: 8px 16px;
-      border-radius: 20px; border: 1px solid var(--border);
-      background: var(--dark2); color: var(--gray);
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: all 0.2s;
-    }
-    .duration-tab.active {
-      background: var(--primary); border-color: var(--primary); color: #fff;
-    }
     .plan-stock {
       position: absolute; top: 12px; right: 12px;
       background: rgba(0,0,0,0.6); border-radius: 20px;
@@ -67,25 +51,28 @@
       <div class="alert alert-danger"  id="alertError"></div>
       <div class="alert alert-success" id="alertSuccess"></div>
 
-      <!-- Plan Fixe -->
-      <div class="section-title">Plan Fixe</div>
-      <div id="fixedPlanContainer"></div>
-
-      <!-- Plans Courts -->
-      <div class="section-title" style="margin-top:24px;">
-        Plans à Courte Durée
+      <!-- Infos règles -->
+      <div style="background:rgba(108,60,255,0.08); border:1px solid var(--primary);
+        border-radius:var(--radius); padding:14px; margin-bottom:20px;
+        display:flex; gap:16px; justify-content:space-around; text-align:center;">
+        <div>
+          <div style="font-size:20px; font-weight:800; color:var(--primary);">10%</div>
+          <div style="font-size:11px; color:var(--gray);">gain / jour</div>
+        </div>
+        <div style="width:1px; background:var(--border);"></div>
+        <div>
+          <div style="font-size:20px; font-weight:800; color:var(--success);">60j</div>
+          <div style="font-size:11px; color:var(--gray);">durée</div>
+        </div>
+        <div style="width:1px; background:var(--border);"></div>
+        <div>
+          <div style="font-size:20px; font-weight:800; color:var(--warning);">500F</div>
+          <div style="font-size:11px; color:var(--gray);">bonus 1er plan</div>
+        </div>
       </div>
 
-      <div id="shortPlansLocked" class="alert alert-info show" style="margin-bottom:16px;">
-        <i class="ri-information-line"></i>
-        Activez d'abord votre compte avec le plan fixe.
-      </div>
-
-      <!-- Onglets durée -->
-      <div class="duration-tabs" id="durationTabs" style="display:none;"></div>
-
-      <!-- Cards plans courts -->
-      <div id="shortPlansGrid"></div>
+      <div class="section-title">Choisissez votre plan</div>
+      <div id="plansGrid"></div>
 
     </div>
   </div>
@@ -94,7 +81,7 @@
   <div class="modal-overlay" id="buyModal">
     <div class="modal">
       <div class="modal-handle"></div>
-      <div class="modal-title" id="modalTitle">Confirmer l'achat</div>
+      <div class="modal-title">Confirmer l'investissement</div>
 
       <div class="card" style="margin-bottom:16px;">
         <div class="d-flex align-center justify-between mb-8">
@@ -107,20 +94,19 @@
         </div>
         <div class="d-flex align-center justify-between mb-8">
           <span style="color:var(--gray); font-size:13px;">Durée</span>
-          <span style="font-weight:700;" id="modalDuration">-</span>
+          <span style="font-weight:700;">60 jours</span>
         </div>
         <div class="d-flex align-center justify-between mb-8">
-          <span style="color:var(--gray); font-size:13px;">Gain</span>
-          <span style="font-weight:700; color:var(--success);" id="modalGain">-</span>
+          <span style="color:var(--gray); font-size:13px;">Gain/jour</span>
+          <span style="font-weight:700; color:var(--success);" id="modalDailyGain">-</span>
         </div>
         <div class="d-flex align-center justify-between mb-8">
-          <span style="color:var(--gray); font-size:13px;">Total reçu</span>
-          <span style="font-weight:700;" id="modalTotal">-</span>
+          <span style="color:var(--gray); font-size:13px;">Total 60j</span>
+          <span style="font-weight:700; color:var(--success);" id="modalTotal">-</span>
         </div>
-        <div class="d-flex align-center justify-between"
-          id="modalBonusRow" style="display:none!important;">
-          <span style="color:var(--gray); font-size:13px;">🎉 Bonus</span>
-          <span style="font-weight:700; color:var(--warning);" id="modalBonus">-</span>
+        <div class="d-flex align-center justify-between" id="modalBonusRow" style="display:none!important;">
+          <span style="color:var(--gray); font-size:13px;">🎉 Bonus premier plan</span>
+          <span style="font-weight:700; color:var(--warning);">+ 500 F</span>
         </div>
       </div>
 
@@ -136,8 +122,7 @@
 
       <div style="display:flex; gap:12px; margin-top:8px;">
         <button class="btn btn-outline" onclick="closeModal()" style="flex:1;">Annuler</button>
-        <button class="btn btn-primary" id="confirmBtn"
-          onclick="confirmPurchase()" style="flex:2;">
+        <button class="btn btn-primary" id="confirmBtn" onclick="confirmPurchase()" style="flex:2;">
           <i class="ri-check-line"></i> Confirmer
         </button>
       </div>
@@ -173,18 +158,11 @@
     const user = getSession();
     if (!user) window.location.href = 'login.html';
 
-    let allPlans       = [];
-    let durations      = [];
-    let userMyPlans    = [];
-    let wallet         = null;
-    let userHasFixed   = false;
-    let userShortCount = 0;
-    let selectedDuration = null;
-
-    // Achat en cours
-    let pendingPlan     = null; // objet plan de la base
-    let pendingDuration = null; // { duration_days, gain_percent }
-    let pendingType     = '';
+    let allPlans     = [];
+    let userMyPlans  = [];
+    let wallet       = null;
+    let isFirstPlan  = false;
+    let pendingPlan  = null;
 
     async function loadProducts() {
       wallet = await getWallet(user.id);
@@ -193,162 +171,55 @@
         document.getElementById('withdrawalBalance').textContent = formatMoney(wallet.withdrawal_balance);
       }
 
-      allPlans     = await getPlans();
-      durations    = await getPlanDurations();
-      userMyPlans  = await getUserPlans(user.id);
-      userHasFixed = userMyPlans.some(p => p.type === 'fixed');
-      userShortCount = userMyPlans.filter(p => p.type === 'short').length;
+      allPlans    = await getPlans();
+      userMyPlans = await getUserPlans(user.id);
+      isFirstPlan = userMyPlans.length === 0;
 
-      renderFixedPlan();
-      renderDurationTabs();
+      renderPlans();
     }
 
-    // ── Plan fixe ──────────────────────────────────────────
-    function renderFixedPlan() {
-      const plan      = allPlans.find(p => p.type === 'fixed');
-      const container = document.getElementById('fixedPlanContainer');
-      if (!plan) { container.innerHTML = ''; return; }
+    function renderPlans() {
+      document.getElementById('plansGrid').innerHTML = allPlans.map(plan => {
+        const totalGain = plan.daily_gain * 60;
 
-      if (userHasFixed) {
-        container.innerHTML = `
-          <div class="card" style="text-align:center; border-color:var(--success);">
-            <i class="ri-checkbox-circle-line"
-              style="font-size:36px; color:var(--success);"></i>
-            <p style="font-weight:700; margin-top:8px;">Plan fixe activé ✓</p>
-            <p style="font-size:12px; color:var(--gray); margin-top:4px;">
-              Gain : 200 F/jour → portefeuille retrait
-            </p>
-          </div>`;
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="plan-card" onclick="openFixedModal()" style="position:relative;">
-          <div class="plan-card-bg"
-            style="background-image:url('${plan.image}')"></div>
-          <div class="plan-card-overlay"></div>
-          <div class="plan-stock ${plan.stock <= 10 ? 'low' : 'ok'}">
-            📦 ${plan.stock} restants
-          </div>
-          <div class="plan-card-content">
-            <div>
-              <span class="plan-badge">⭐ PLAN FIXE</span>
-              <div class="plan-name">${plan.name}</div>
-              <div class="plan-price">${formatMoney(plan.price)}</div>
-              <div class="plan-info">
-                <div class="plan-info-item">
-                  ⏱ <strong>${plan.duration_days} jours</strong>
-                </div>
-                <div class="plan-info-item">
-                  📈 <strong>${formatMoney(plan.daily_gain)}/jour</strong>
-                </div>
-                <div class="plan-info-item">
-                  🎁 Bonus <strong>300 F</strong>
-                </div>
-              </div>
-            </div>
-            <button class="plan-btn">
-              <i class="ri-shopping-cart-line"></i> Activer le compte
-            </button>
-          </div>
-        </div>`;
-    }
-
-    // ── Onglets durée ──────────────────────────────────────
-    function renderDurationTabs() {
-      const lockedEl = document.getElementById('shortPlansLocked');
-      const tabsEl   = document.getElementById('durationTabs');
-
-      if (!userHasFixed) {
-        lockedEl.style.display = '';
-        tabsEl.style.display   = 'none';
-        document.getElementById('shortPlansGrid').innerHTML = '';
-        return;
-      }
-
-      lockedEl.style.display = 'none';
-      tabsEl.style.display   = 'flex';
-
-      tabsEl.innerHTML = durations.map(d => `
-        <div class="duration-tab ${selectedDuration?.duration_days === d.duration_days ? 'active' : ''}"
-          onclick="selectDuration(${d.duration_days}, ${d.gain_percent})">
-          ${d.duration_days}j &nbsp;<span style="font-size:11px; opacity:0.8;">+${d.gain_percent}%</span>
-        </div>`).join('');
-
-      if (!selectedDuration && durations.length > 0) {
-        selectDuration(durations[0].duration_days, durations[0].gain_percent);
-      } else {
-        renderShortPlans();
-      }
-    }
-
-    function selectDuration(days, gainPercent) {
-      selectedDuration = { duration_days: days, gain_percent: gainPercent };
-      document.querySelectorAll('.duration-tab').forEach((el, i) => {
-        el.classList.toggle('active', durations[i]?.duration_days === days);
-      });
-      renderShortPlans();
-    }
-
-    // ── Cards plans courts avec images ────────────────────
-    function renderShortPlans() {
-      if (!selectedDuration) return;
-      const { duration_days, gain_percent } = selectedDuration;
-      const isFirstShort = userShortCount === 0;
-      const shortPlans   = allPlans.filter(p => p.type === 'short');
-
-      document.getElementById('shortPlansGrid').innerHTML = shortPlans.map(plan => {
-        const gainAmt = plan.price * (gain_percent / 100);
-        const total   = Number(plan.price) + gainAmt;
-
-        // Vérifier si déjà actif (même plan)
         const activeSame = userMyPlans.filter(
-          p => p.plan_id === plan.id && p.type === 'short' && p.status === 'active'
+          p => p.plan_id === plan.id && p.status === 'active'
         );
-        const totalBought = userMyPlans.filter(
-          p => p.plan_id === plan.id && p.type === 'short'
-        ).length;
+        const totalBought = userMyPlans.filter(p => p.plan_id === plan.id).length;
 
-        const isActiveNow  = activeSame.length > 0;
-        const maxReached   = totalBought >= (plan.max_per_user || 2);
-        const noStock      = plan.stock <= 0;
-        const locked       = isActiveNow || maxReached || noStock;
+        const isActiveNow = activeSame.length > 0;
+        const maxReached  = totalBought >= (plan.max_per_user || 2);
+        const noStock     = plan.stock <= 0;
+        const locked      = isActiveNow || maxReached || noStock;
 
         let lockMsg = '';
-        if (isActiveNow)  lockMsg = '⏳ Plan actif';
-        if (maxReached)   lockMsg = '✗ Limite atteinte';
-        if (noStock)      lockMsg = '✗ Épuisé';
-
-        let bonusHtml = '';
-        if (isFirstShort && !locked) {
-          const bonus = plan.price <= 10000 ? 500 : 750;
-          bonusHtml = `<div class="plan-info-item">🎉 Bonus <strong>${formatMoney(bonus)}</strong></div>`;
-        }
+        if (isActiveNow) lockMsg = '⏳ Plan actif';
+        if (maxReached)  lockMsg = '✗ Limite atteinte';
+        if (noStock)     lockMsg = '✗ Épuisé';
 
         return `
           <div class="plan-card"
             style="margin-bottom:16px; position:relative;
               ${locked ? 'opacity:0.55; filter:grayscale(0.5);' : 'cursor:pointer;'}"
-            ${locked ? '' : `onclick="openShortModal('${plan.id}')"`}>
+            ${locked ? '' : `onclick="openModal('${plan.id}')"`}>
             <div class="plan-card-bg"
-              style="background-image:url('${plan.image}')"></div>
+              style="background-image:url('${plan.image || ''}')"></div>
             <div class="plan-card-overlay"></div>
             <div class="plan-stock ${plan.stock <= 5 ? 'low' : 'ok'}">
               📦 ${plan.stock}
             </div>
             <div class="plan-card-content">
               <div>
-                <span class="plan-badge">🚀 ${duration_days} JOURS</span>
+                <span class="plan-badge">📈 60 JOURS · 10%/JOUR</span>
                 <div class="plan-name">${plan.name}</div>
                 <div class="plan-price">${formatMoney(plan.price)}</div>
                 <div class="plan-info">
                   <div class="plan-info-item">
-                    📈 +${gain_percent}% (<strong>${formatMoney(gainAmt)}</strong>)
+                    💰 <strong>${formatMoney(plan.daily_gain)}/jour</strong>
                   </div>
                   <div class="plan-info-item">
-                    💰 Total <strong>${formatMoney(total)}</strong>
+                    🏆 Total <strong>${formatMoney(totalGain)}</strong>
                   </div>
-                  ${bonusHtml}
                 </div>
               </div>
               <button class="plan-btn" ${locked ? 'disabled' : ''}>
@@ -361,67 +232,25 @@
       }).join('');
     }
 
-    // ── Modals ─────────────────────────────────────────────
-    function openFixedModal() {
-      const plan = allPlans.find(p => p.type === 'fixed');
-      if (!plan) return;
-      pendingType     = 'fixed';
-      pendingPlan     = plan;
-      pendingDuration = null;
+    function openModal(planId) {
+      pendingPlan = allPlans.find(p => p.id === planId);
+      if (!pendingPlan) return;
 
-      document.getElementById('modalTitle').textContent     = 'Activer le plan fixe';
-      document.getElementById('modalPlanName').textContent  = plan.name;
-      document.getElementById('modalPrice').textContent     = formatMoney(plan.price);
-      document.getElementById('modalDuration').textContent  = plan.duration_days + ' jours';
-      document.getElementById('modalGain').textContent      = formatMoney(plan.daily_gain) + '/jour';
-      document.getElementById('modalTotal').textContent     =
-        formatMoney(plan.daily_gain * plan.duration_days) + ' total';
-      document.getElementById('modalBonus').textContent     = '+ 300 F';
-      document.getElementById('modalBonusRow').style.cssText = 'display:flex!important;';
-      showModal();
-    }
+      const totalGain = pendingPlan.daily_gain * 60;
 
-    function openShortModal(planId) {
-      if (!userHasFixed) return;
-      const plan = allPlans.find(p => p.id === planId);
-      if (!plan || !selectedDuration) return;
+      document.getElementById('modalPlanName').textContent  = pendingPlan.name;
+      document.getElementById('modalPrice').textContent     = formatMoney(pendingPlan.price);
+      document.getElementById('modalDailyGain').textContent = formatMoney(pendingPlan.daily_gain) + '/jour';
+      document.getElementById('modalTotal').textContent     = formatMoney(totalGain);
+      document.getElementById('modalDepositBalance').textContent = formatMoney(wallet?.deposit_balance || 0);
 
-      pendingType     = 'short';
-      pendingPlan     = plan;
-      pendingDuration = selectedDuration;
-
-      const { duration_days, gain_percent } = selectedDuration;
-      const gainAmt = plan.price * (gain_percent / 100);
-      const total   = Number(plan.price) + gainAmt;
-
-      document.getElementById('modalTitle').textContent    = 'Confirmer l\'investissement';
-      document.getElementById('modalPlanName').textContent = plan.name;
-      document.getElementById('modalPrice').textContent    = formatMoney(plan.price);
-      document.getElementById('modalDuration').textContent = duration_days + ' jours';
-      document.getElementById('modalGain').textContent     = '+' + gain_percent + '% (' + formatMoney(gainAmt) + ')';
-      document.getElementById('modalTotal').textContent    = formatMoney(total);
-
+      // Bonus premier plan
       const bonusRow = document.getElementById('modalBonusRow');
-      if (userShortCount === 0) {
-        const bonus = plan.price <= 10000 ? 500 : 750;
-        document.getElementById('modalBonus').textContent = '+ ' + formatMoney(bonus);
-        bonusRow.style.cssText = 'display:flex!important;';
-      } else {
-        bonusRow.style.cssText = 'display:none!important;';
-      }
-
-      showModal();
-    }
-
-    function showModal() {
-      document.getElementById('modalDepositBalance').textContent =
-        formatMoney(wallet?.deposit_balance || 0);
+      bonusRow.style.cssText = isFirstPlan ? 'display:flex!important;' : 'display:none!important;';
 
       const insufficient = !wallet || wallet.deposit_balance < pendingPlan.price;
-      document.getElementById('depositLink').style.display =
-        insufficient ? 'block' : 'none';
-      document.getElementById('confirmBtn').style.display  =
-        insufficient ? 'none'  : '';
+      document.getElementById('depositLink').style.display = insufficient ? 'block' : 'none';
+      document.getElementById('confirmBtn').style.display  = insufficient ? 'none' : '';
 
       document.getElementById('modalAlert').classList.remove('show');
       document.getElementById('buyModal').classList.add('show');
@@ -429,7 +258,7 @@
 
     function closeModal() {
       document.getElementById('buyModal').classList.remove('show');
-      pendingType = ''; pendingPlan = null; pendingDuration = null;
+      pendingPlan = null;
     }
 
     document.getElementById('buyModal').addEventListener('click', function(e) {
@@ -437,22 +266,14 @@
     });
 
     async function confirmPurchase() {
+      if (!pendingPlan) return;
       const alertEl = document.getElementById('modalAlert');
       const btn     = document.getElementById('confirmBtn');
 
       btn.innerHTML = '<span class="loader"></span>';
       btn.disabled  = true;
 
-      let result;
-      if (pendingType === 'fixed') {
-        result = await buyFixedPlan(user.id, pendingPlan);
-      } else {
-        result = await buyShortPlan(
-          user.id, pendingPlan,
-          pendingDuration.duration_days,
-          pendingDuration.gain_percent
-        );
-      }
+      const result = await buyPlan(user.id, pendingPlan);
 
       btn.innerHTML = '<i class="ri-check-line"></i> Confirmer';
       btn.disabled  = false;
@@ -464,8 +285,8 @@
       }
 
       closeModal();
-      const msg = pendingType === 'fixed'
-        ? 'Compte activé ! +300 F bonus crédité.'
+      const msg = isFirstPlan
+        ? 'Investissement confirmé ! 🎉 Bonus 500 F crédité.'
         : 'Investissement confirmé !';
       document.getElementById('alertSuccess').textContent = msg;
       document.getElementById('alertSuccess').classList.add('show');
