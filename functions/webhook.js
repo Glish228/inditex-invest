@@ -3,7 +3,7 @@
 
 const SUPABASE_URL      = 'https://oxwvofgenucbebcbiztc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94d3ZvZmdlbnVjYmViY2JpenRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDQ1MDEsImV4cCI6MjEwNzU4MDUwMX0.SoP6W2GWr9Oir1TamKmqskFzeGNFPAI2gWrIcJtnvmY';
-const WEBHOOK_SECRET    = 'cs_525b3730f0a5498eb68c4b037b823858';
+const WEBHOOK_SECRET    = 'cs_7ef06a1cb623486da95e17c8d63893fd';
 
 const HEADERS = {
   'apikey':        SUPABASE_ANON_KEY,

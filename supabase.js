@@ -68,7 +68,7 @@ async function updateWallet(user_id, field, amount) {
 }
 
 // ─── DÉPÔT BKApay ────────────────────────────────────────
-const BKA_PUBLIC_KEY = 'pk_live_241f9c02-81db-4c7a-ac24-7f5a7633daac';
+const BKA_PUBLIC_KEY = 'pk_live_e0e222e7-a80f-42b1-b4bb-6ce14899ebe3';
 
 function redirectToDeposit(amount) {
   const user = getSession();
