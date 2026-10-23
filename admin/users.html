@@ -11,7 +11,6 @@
 </head>
 <body class="admin-body">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">INDI<span>TEX</span> <small>Admin</small></div>
     <nav class="sidebar-nav">
@@ -31,7 +30,6 @@
     </nav>
   </aside>
 
-  <!-- MAIN -->
   <div class="admin-main">
     <div class="admin-topbar">
       <button onclick="toggleSidebar()" class="menu-btn"><i class="ri-menu-line"></i></button>
@@ -41,7 +39,6 @@
 
     <div class="admin-content">
 
-      <!-- Recherche & Filtres -->
       <div class="admin-search">
         <input type="text" id="searchInput"
           placeholder="🔍 Nom, téléphone, code parrainage..."
@@ -61,7 +58,6 @@
         </select>
       </div>
 
-      <!-- Table utilisateurs -->
       <div class="admin-card">
         <div style="overflow-x:auto;">
           <table class="admin-table">
@@ -88,7 +84,7 @@
     </div>
   </div>
 
-  <!-- MODAL DETAIL UTILISATEUR -->
+  <!-- MODAL UTILISATEUR -->
   <div class="admin-modal-overlay" id="userModal">
     <div class="admin-modal" style="max-width:620px;">
       <div class="admin-modal-title" id="modalUserName">Détail utilisateur</div>
@@ -130,7 +126,6 @@
           </div>
         </div>
 
-        <!-- Actions compte -->
         <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
           <div class="alert alert-danger"  id="modalAlert"></div>
           <div class="alert alert-success" id="modalSuccess"></div>
@@ -143,24 +138,15 @@
             <span id="frozenStatus"></span>
           </div>
 
-          <!-- Modifier les 3 soldes -->
+          <!-- Modifier les 2 soldes -->
           <div style="background:var(--dark3); border-radius:var(--radius-sm); padding:16px;">
-            <div style="font-size:13px; font-weight:700; margin-bottom:12px;">
-              Modifier les soldes
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:700; margin-bottom:12px;">Modifier les soldes</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
               <div>
                 <label style="font-size:11px; color:var(--gray); display:block; margin-bottom:4px;">
                   💳 Dépôt (F)
                 </label>
                 <input type="number" class="form-input" id="newDepositBalance"
-                  placeholder="Ex: 5000" style="font-size:13px; padding:10px;">
-              </div>
-              <div>
-                <label style="font-size:11px; color:var(--gray); display:block; margin-bottom:4px;">
-                  💰 Unique (F)
-                </label>
-                <input type="number" class="form-input" id="newUniqueBalance"
                   placeholder="Ex: 5000" style="font-size:13px; padding:10px;">
               </div>
               <div>
@@ -180,22 +166,17 @@
 
       <!-- Tab Portefeuilles -->
       <div id="tab-wallets" style="display:none;">
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="wallet-card">
             <div class="wallet-label">💳 Dépôt</div>
             <div class="wallet-amount" id="dWalletDeposit">0 F</div>
-            <div class="wallet-sub">Fonds disponibles</div>
-          </div>
-          <div class="wallet-card secondary">
-            <div class="wallet-label">💰 Unique</div>
-            <div class="wallet-amount" id="dWalletUnique">0 F</div>
-            <div class="wallet-sub">Gains plan fixe</div>
+            <div class="wallet-sub">Pour acheter un plan</div>
           </div>
           <div class="wallet-card" style="background:linear-gradient(135deg,#1a3a2a,#0d2018);
             border-color:var(--success);">
             <div class="wallet-label">🏦 Retrait</div>
             <div class="wallet-amount" id="dWalletWithdrawal">0 F</div>
-            <div class="wallet-sub">Disponible</div>
+            <div class="wallet-sub">Gains & commissions</div>
           </div>
         </div>
       </div>
@@ -255,18 +236,15 @@
     };
 
     const TX_LABELS = {
-      deposit:           'Dépôt',
-      withdrawal:        'Retrait',
-      gain_fixed:        'Gain fixe',
-      gain_short:        'Gain court',
-      referral:          'Parrainage',
-      bonus_activation:  'Bonus activation',
-      bonus_first_short: 'Bonus 1er plan'
+      deposit:          'Dépôt',
+      withdrawal:       'Retrait',
+      gain_daily:       'Gain journalier',
+      referral:         'Parrainage',
+      bonus_first_plan: 'Bonus premier plan'
     };
 
     const WALLET_LABELS = {
       deposit:    '💳 Dépôt',
-      unique:     '💰 Unique',
       withdrawal: '🏦 Retrait'
     };
 
@@ -305,9 +283,7 @@
             <td>${COUNTRIES_LABEL[u.country_code] || u.country_code}</td>
             <td style="font-weight:700; color:var(--primary); letter-spacing:2px;">${u.referral_code}</td>
             <td style="font-size:12px;">${parrain}</td>
-            <td style="text-align:center;">
-              <span class="badge badge-primary">${filleuls}</span>
-            </td>
+            <td style="text-align:center;"><span class="badge badge-primary">${filleuls}</span></td>
             <td>${badge}</td>
             <td style="font-size:12px; color:var(--gray);">${formatDate(u.created_at)}</td>
             <td>
@@ -372,14 +348,11 @@
         frozenStatus.innerHTML = '';
       }
 
-      // ✅ Les 3 portefeuilles
       const wallet = await getWallet(selectedUser.id);
       if (wallet) {
         document.getElementById('dWalletDeposit').textContent    = formatMoney(wallet.deposit_balance);
-        document.getElementById('dWalletUnique').textContent     = formatMoney(wallet.unique_balance);
         document.getElementById('dWalletWithdrawal').textContent = formatMoney(wallet.withdrawal_balance);
         document.getElementById('newDepositBalance').value       = wallet.deposit_balance;
-        document.getElementById('newUniqueBalance').value        = wallet.unique_balance;
         document.getElementById('newWithdrawalBalance').value    = wallet.withdrawal_balance;
       }
 
@@ -411,9 +384,10 @@
         return;
       }
       el.innerHTML = plans.map(p => {
-        const end  = new Date(p.end_date);
-        const now  = new Date();
-        const left = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+        const end    = new Date(p.end_date);
+        const now    = new Date();
+        const left   = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+        const daily  = p.plans?.daily_gain || 0;
         return `
           <div style="padding:12px; background:var(--dark3); border-radius:var(--radius-sm);
             margin-bottom:10px;">
@@ -422,7 +396,8 @@
                 <div style="font-weight:700;">${p.plans?.name || 'Plan'}</div>
                 <div style="font-size:12px; color:var(--gray); margin-top:2px;">
                   Investi : ${formatMoney(p.amount_paid)}
-                  ${p.gain_total ? ' · Total : ' + formatMoney(p.gain_total) : ''}
+                  · Gain/jour : ${formatMoney(daily)}
+                  · Total : ${formatMoney(daily * 60)}
                 </div>
                 <div style="font-size:12px; color:var(--gray);">
                   Fin : ${end.toLocaleDateString('fr-FR')} · ${left} jour(s) restant(s)
@@ -522,10 +497,9 @@
     async function updateBalances() {
       if (!selectedUser) return;
       const deposit    = parseFloat(document.getElementById('newDepositBalance').value);
-      const unique     = parseFloat(document.getElementById('newUniqueBalance').value);
       const withdrawal = parseFloat(document.getElementById('newWithdrawalBalance').value);
 
-      if (isNaN(deposit) || isNaN(unique) || isNaN(withdrawal)) {
+      if (isNaN(deposit) || isNaN(withdrawal)) {
         showAdminAlert('modalAlert', 'Veuillez entrer des montants valides.');
         return;
       }
@@ -534,7 +508,6 @@
         .from('wallets')
         .update({
           deposit_balance:    deposit,
-          unique_balance:     unique,
           withdrawal_balance: withdrawal,
           updated_at:         new Date().toISOString()
         })
@@ -542,9 +515,7 @@
 
       if (error) { showAdminAlert('modalAlert', 'Erreur lors de la modification.'); return; }
 
-      // Mettre à jour l'affichage tab portefeuilles
       document.getElementById('dWalletDeposit').textContent    = formatMoney(deposit);
-      document.getElementById('dWalletUnique').textContent     = formatMoney(unique);
       document.getElementById('dWalletWithdrawal').textContent = formatMoney(withdrawal);
       showAdminAlert('modalSuccess', 'Soldes mis à jour avec succès.', 'success');
     }
