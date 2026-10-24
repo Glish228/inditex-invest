@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────
 
 const SUPABASE_URL = 'https://oxwvofgenucbebcbiztc.supabase.co';
-const SUPABASE_SERVICE = env.SUPABASE_SERVICE_ROLE_KEY; // clé service role Supabase
+const SUPABASE_SERVICE = env.SUPABASE_SERVICE_KEY; // clé service role Supabase
 
 export default {
   async scheduled(event, env, ctx) {
